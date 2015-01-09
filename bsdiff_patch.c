@@ -54,7 +54,7 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
         16      8   --> Y, length of the bzip2(diff block)
         24      8   --> newfile size
         32      X   --> bzip2(control block)
-		32+X    Y   --> bzip2(diff block)
+        32+X    Y   --> bzip2(diff block)
         32+X+Y  ?   --> bzip2(extra block)
 
         其中control block是一系列的3元组(x,y,z)，xyz均为8字节的无符号整数，其含义为：
