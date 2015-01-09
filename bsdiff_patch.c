@@ -299,7 +299,7 @@ static int getFileSize(FILE *fp, int *fileSize)
 
 static int readOffset(unsigned char buf[8])
 {
-    int off = 0;
+    unsigned int off = 0;
 
     if (buf[7] || buf[6] || buf[5] || buf[4])
         return -1;
@@ -311,7 +311,7 @@ static int readOffset(unsigned char buf[8])
     if (off > 0x7fffffff)
         return -1;
 
-    return off;
+    return (int)off;
 }
 
 static void writeError(char error[64], const char *str)
