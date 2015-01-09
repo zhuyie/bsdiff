@@ -330,7 +330,7 @@ static void writeError(char error[64], const char *str)
 
 //------------------------------------------------------------------------------
 
-#define TEST_BSDIFF
+// #define TEST_BSDIFF
 
 #ifdef TEST_BSDIFF
 
