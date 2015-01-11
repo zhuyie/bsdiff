@@ -44,7 +44,7 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
     int controlBlockSize, diffBlockSize, newFileSize, oldFileSize;
     int oldPos, newPos;
     int bzError, bzReaded;
-    int i, ctrl[3];
+    int i, cb, ctrl[3];
     unsigned char temp[24];
 
     /* 文件格式描述如下：
@@ -160,10 +160,11 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
         }
 
         // 从旧文件数据中读取ctrl[0]个字节，与diff数据进行加操作
-        for (i = 0; i < ctrl[0]; ++i) {
-            if (oldPos + i < oldFileSize) {
-                newFileBuf[newPos + i] += oldFileBuf[oldPos + i];
-            }
+        cb = ctrl[0];
+        if (oldPos + cb > oldFileSize)
+            cb = oldFileSize - oldPos;
+        for (i = 0; i < cb; ++i) {
+            newFileBuf[newPos + i] += oldFileBuf[oldPos + i];
         }
 
         // 调整pos
