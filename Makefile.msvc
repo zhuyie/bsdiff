@@ -25,8 +25,9 @@ SRC_DIR = .
 OBJ_DIR = obj
 BIN_DIR = bin
 
-PATCH_OBJS = \
-  $(OBJ_DIR)\bsdiff_patch.obj \
+DIFF_OBJS = \
+  $(OBJ_DIR)\bsdiff_diff.obj \
+  $(OBJ_DIR)\bsdiff_misc.obj \
   $(OBJ_DIR)\blocksort.obj \
   $(OBJ_DIR)\bzlib.obj \
   $(OBJ_DIR)\compress.obj \
@@ -35,7 +36,21 @@ PATCH_OBJS = \
   $(OBJ_DIR)\huffman.obj \
   $(OBJ_DIR)\randtable.obj
 
-all: patch
+PATCH_OBJS = \
+  $(OBJ_DIR)\bsdiff_patch.obj \
+  $(OBJ_DIR)\bsdiff_misc.obj \
+  $(OBJ_DIR)\blocksort.obj \
+  $(OBJ_DIR)\bzlib.obj \
+  $(OBJ_DIR)\compress.obj \
+  $(OBJ_DIR)\crctable.obj \
+  $(OBJ_DIR)\decompress.obj \
+  $(OBJ_DIR)\huffman.obj \
+  $(OBJ_DIR)\randtable.obj
+
+all: diff patch
+
+diff: create_dirs $(DIFF_OBJS)
+  link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_diff.exe $(DIFF_OBJS)
 
 patch: create_dirs $(PATCH_OBJS)
   link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_patch.exe $(PATCH_OBJS)
