@@ -31,7 +31,7 @@ void bsdiff_WriteOffset(
     unsigned char buf[8]
     );
 
-void bsdiff_WriteError(
+void bsdiff_SetError(
     char error[64], 
     const char *str
     );

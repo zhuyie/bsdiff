@@ -6,18 +6,10 @@
 
 //------------------------------------------------------------------------------
 
-static int readHeader(
-    FILE *fp, 
-    int *controlBlockSize, 
-    int *diffBlockSize, 
-    int *newFileSize
-    );
-
-//------------------------------------------------------------------------------
-
 int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile, char error[64])
 {
     int retCode = 0;
+    unsigned char header[32];
     FILE *fp = NULL, *fpControl = NULL, *fpDiff = NULL, *fpExtra = NULL;
     BZFILE *bfpControl = NULL, *bfpDiff = NULL, *bfpExtra = NULL;
     unsigned char *oldFileBuf = NULL, *newFileBuf = NULL;
@@ -50,11 +42,22 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
     // 打开patch文件，读取并校验文件头
     fp = fopen(patchFile, "rb");
     if (!fp) {
-        bsdiff_WriteError(error, "Can't open patchFile");
+        bsdiff_SetError(error, "Can't open patchFile");
         goto MyExit;
     }
-    if (!readHeader(fp, &controlBlockSize, &diffBlockSize, &newFileSize)) {
-        bsdiff_WriteError(error, "Invalid patchFile");
+    if (!bsdiff_ReadFile(fp, header, 32)) {
+        bsdiff_SetError(error, "Invalid patchFile");
+        goto MyExit;
+    }
+    if (memcmp(header, "BSDIFF40", 8) != 0) {
+        bsdiff_SetError(error, "Invalid patchFile");
+        goto MyExit;
+    }
+    controlBlockSize = bsdiff_ReadOffset(header + 8);
+    diffBlockSize = bsdiff_ReadOffset(header + 16);
+    newFileSize = bsdiff_ReadOffset(header + 24);
+    if (controlBlockSize < 0 || diffBlockSize < 0 || newFileSize < 0) {
+        bsdiff_SetError(error, "Invalid patchFile");
         goto MyExit;
     }
 
@@ -63,54 +66,51 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
     fp = NULL;
     bfpControl = BZ2_bzReadOpen(&bzError, fpControl, 0, 0, NULL, 0);
     if (!bfpControl) {
-        bsdiff_WriteError(error, "Invalid patchFile");
+        bsdiff_SetError(error, "Invalid patchFile");
         goto MyExit;
     }
 
-    fpDiff = fopen(patchFile, "rb");
-    if (!fpDiff || fseek(fpDiff, 32 + controlBlockSize, SEEK_SET)) {
-        bsdiff_WriteError(error, "Invalid patchFile");
+    if (!(fpDiff = fopen(patchFile, "rb")) || fseek(fpDiff, 32 + controlBlockSize, SEEK_SET)) {
+        bsdiff_SetError(error, "Invalid patchFile");
         goto MyExit;
     }
     bfpDiff = BZ2_bzReadOpen(&bzError, fpDiff, 0, 0, NULL, 0);
     if (!bfpDiff) {
-        bsdiff_WriteError(error, "Invalid patchFile");
+        bsdiff_SetError(error, "Invalid patchFile");
         goto MyExit;
     }
 
-    fpExtra = fopen(patchFile, "rb");
-    if (!fpExtra || fseek(fpExtra, 32 + controlBlockSize + diffBlockSize, SEEK_SET)) {
-        bsdiff_WriteError(error, "Invalid patchFile");
+    if (!(fpExtra = fopen(patchFile, "rb")) || fseek(fpExtra, 32 + controlBlockSize + diffBlockSize, SEEK_SET)) {
+        bsdiff_SetError(error, "Invalid patchFile");
         goto MyExit;
     }
     bfpExtra = BZ2_bzReadOpen(&bzError, fpExtra, 0, 0, NULL, 0);
     if (!bfpDiff) {
-        bsdiff_WriteError(error, "Invalid patchFile");
+        bsdiff_SetError(error, "Invalid patchFile");
         goto MyExit;
     }
 
     // 读取oldFile内容到oldFileBuf
-    fp = fopen(oldFile, "rb");
-    if (!fp || !bsdiff_GetFileSize(fp, &oldFileSize)) {
-        bsdiff_WriteError(error, "Can't open oldFile");
+    if (!(fp = fopen(oldFile, "rb")) || !bsdiff_GetFileSize(fp, &oldFileSize)) {
+        bsdiff_SetError(error, "Can't open oldFile");
         goto MyExit;
     }
-    oldFileBuf = (unsigned char*)malloc(oldFileSize);
+    oldFileBuf = (unsigned char*)malloc(oldFileSize + 1);  // oldFileSize可能为0
     if (!oldFileBuf) {
-        bsdiff_WriteError(error, "Out of memory");
+        bsdiff_SetError(error, "Out of memory");
         goto MyExit;
     }
     if (!bsdiff_ReadFile(fp, oldFileBuf, oldFileSize)) {
-        bsdiff_WriteError(error, "Failed to read oldFile");
+        bsdiff_SetError(error, "Failed to read oldFile");
         goto MyExit;
     }
     fclose(fp);
     fp = NULL;
 
     // 分配newFileBuf
-    newFileBuf = (unsigned char*)malloc(newFileSize);
+    newFileBuf = (unsigned char*)malloc(newFileSize + 1);  // newFileSize可能为0
     if (!newFileBuf) {
-        bsdiff_WriteError(error, "Out of memory");
+        bsdiff_SetError(error, "Out of memory");
         goto MyExit;
     }
 
@@ -121,7 +121,7 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
         // 读Control data
         bzReaded = BZ2_bzRead(&bzError, bfpControl, temp, 24);
         if ((bzError != BZ_OK && bzError != BZ_STREAM_END) || bzReaded != 24) {
-            bsdiff_WriteError(error, "Invalid patchFile");
+            bsdiff_SetError(error, "Invalid patchFile");
             goto MyExit;
         }
         ctrl[0] = bsdiff_ReadOffset(temp);
@@ -130,12 +130,12 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
         
         // 从diff数据中读ctrl[0]个字节
         if (ctrl[0] < 0 || newPos + ctrl[0] > newFileSize) {
-            bsdiff_WriteError(error, "Invalid patchFile");
+            bsdiff_SetError(error, "Invalid patchFile");
             goto MyExit;
         }
         bzReaded = BZ2_bzRead(&bzError, bfpDiff, newFileBuf + newPos, ctrl[0]);
         if ((bzError != BZ_OK && bzError != BZ_STREAM_END) || bzReaded != ctrl[0]) {
-            bsdiff_WriteError(error, "Invalid patchFile");
+            bsdiff_SetError(error, "Invalid patchFile");
             goto MyExit;
         }
 
@@ -153,32 +153,32 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
 
         // 从extra数据中读取ctrl[1]个字节
         if (ctrl[1] < 0 || newPos + ctrl[1] > newFileSize) {
-            bsdiff_WriteError(error, "Invalid patchFile");
+            bsdiff_SetError(error, "Invalid patchFile");
             goto MyExit;
         }
         bzReaded = BZ2_bzRead(&bzError, bfpExtra, newFileBuf + newPos, ctrl[1]);
         if ((bzError != BZ_OK && bzError != BZ_STREAM_END) || bzReaded != ctrl[1]) {
-            bsdiff_WriteError(error, "Invalid patchFile");
+            bsdiff_SetError(error, "Invalid patchFile");
             goto MyExit;
         }
 
         // 调整pos
-        if (ctrl[2] < 0) {
-            bsdiff_WriteError(error, "Invalid patchFile");
+        newPos += ctrl[1];
+        oldPos += ctrl[2];  // ctrl[2]可能是负数
+        if (oldPos > oldFileSize || oldPos < 0) {
+            bsdiff_SetError(error, "Invalid patchFile");
             goto MyExit;
         }
-        newPos += ctrl[1];
-        oldPos += ctrl[2];
     }
 
     // 将newFileBuf中的内容写出到newFile
     fp = fopen(newFile, "wb");
     if (!fp) {
-        bsdiff_WriteError(error, "Can't open newFile");
+        bsdiff_SetError(error, "Can't open newFile");
         goto MyExit;
     }
     if (!bsdiff_WriteFile(fp, newFileBuf, newFileSize)) {
-        bsdiff_WriteError(error, "Failed to write newFile");
+        bsdiff_SetError(error, "Failed to write newFile");
         goto MyExit;
     }
     fclose(fp);
@@ -188,10 +188,8 @@ int bsdiff_patch(const char *oldFile, const char *patchFile, const char *newFile
     retCode = 1;
 
 MyExit:
-    if (oldFileBuf)
-        free(oldFileBuf);
-    if (newFileBuf)
-        free(newFileBuf);
+    free(oldFileBuf);
+    free(newFileBuf);
     if (bfpControl)
         BZ2_bzReadClose(&bzError, bfpControl);
     if (bfpDiff)
@@ -207,32 +205,6 @@ MyExit:
     if (fpExtra)
         fclose(fpExtra);
     return retCode;
-}
-
-//------------------------------------------------------------------------------
-
-static int readHeader(
-    FILE *fp, 
-    int *controlBlockSize, 
-    int *diffBlockSize, 
-    int *newFileSize
-    )
-{
-    unsigned char header[32];
-
-    if (fread(header, 1, 32, fp) != 32)
-        return 0;
-    
-    if (memcmp(header, "BSDIFF40", 8) != 0)
-        return 0;
-
-    *controlBlockSize = bsdiff_ReadOffset(header + 8);
-    *diffBlockSize = bsdiff_ReadOffset(header + 16);
-    *newFileSize = bsdiff_ReadOffset(header + 24);
-    if (*controlBlockSize < 0 || *diffBlockSize < 0 || *newFileSize < 0)
-        return 0;
-
-    return 1;
 }
 
 //------------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 #include "bsdiff_misc.h"
+#include <limits.h>
 #include <assert.h>
 
 //------------------------------------------------------------------------------
@@ -48,37 +49,44 @@ int bsdiff_GetFileSize(FILE *fp, int *fileSize)
 
 int bsdiff_ReadOffset(unsigned char buf[8])
 {
-    unsigned int off = 0;
+    long long value = 0;
 
-    if (buf[7] || buf[6] || buf[5] || buf[4])
-        return -1;
+    value = buf[7] & 0x7F;
+    value *= 256;  value += buf[6];
+    value *= 256;  value += buf[5];
+    value *= 256;  value += buf[4];
+    value *= 256;  value += buf[3];
+    value *= 256;  value += buf[2];
+    value *= 256;  value += buf[1];
+    value *= 256;  value += buf[0];
+    if (buf[7] & 0x80)
+        value = -value;
 
-    off += buf[3];
-    off = off * 256; off += buf[2];
-    off = off * 256; off += buf[1];
-    off = off * 256; off += buf[0];
-    if (off > 0x7fffffff)
-        return -1;
-
-    return (int)off;
+    assert(value >= INT_MIN && value <= INT_MAX);  // 当前实现中应该在int范围之内
+    return (int)value;
 }
 
 void bsdiff_WriteOffset(int offset, unsigned char buf[8])
 {
-    assert(offset >= 0);
+    long long value = offset;
 
-                    buf[0] = offset % 256;  offset -= buf[0];
-    offset /= 256;  buf[1] = offset % 256;  offset -= buf[1];
-    offset /= 256;  buf[2] = offset % 256;  offset -= buf[2];
-    offset /= 256;  buf[3] = offset % 256;  offset -= buf[3];
+    if (offset < 0)
+        value = -value;
 
-    buf[4] = 0;
-    buf[5] = 0;
-    buf[6] = 0;
-    buf[7] = 0;
+    buf[0] = value % 256;  value -= buf[0];  value /= 256;
+    buf[1] = value % 256;  value -= buf[1];  value /= 256;
+    buf[2] = value % 256;  value -= buf[2];  value /= 256;
+    buf[3] = value % 256;  value -= buf[3];  value /= 256;
+    buf[4] = value % 256;  value -= buf[4];  value /= 256;
+    buf[5] = value % 256;  value -= buf[5];  value /= 256;
+    buf[6] = value % 256;  value -= buf[6];  value /= 256;
+    buf[7] = (unsigned char)value;
+
+    if (offset < 0)
+        buf[7] |= 0x80;
 }
 
-void bsdiff_WriteError(char error[64], const char *str)
+void bsdiff_SetError(char error[64], const char *str)
 {
     int i;
     

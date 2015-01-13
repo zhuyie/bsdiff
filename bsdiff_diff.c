@@ -48,15 +48,15 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
 
     // 打开oldFile，将其内容读入oldFileBuf
     if (!(fp = fopen(oldFile, "rb")) || !bsdiff_GetFileSize(fp, &oldSize)) {
-        bsdiff_WriteError(error, "Can't open oldFile");
+        bsdiff_SetError(error, "Can't open oldFile");
         goto MyExit;
     }
     if (!(oldFileBuf = (unsigned char*)malloc(oldSize + 1))) {
-        bsdiff_WriteError(error, "Out of memory");
+        bsdiff_SetError(error, "Out of memory");
         goto MyExit;
     }
     if (!bsdiff_ReadFile(fp, oldFileBuf, oldSize)) {
-        bsdiff_WriteError(error, "Can't read oldFile");
+        bsdiff_SetError(error, "Can't read oldFile");
         goto MyExit;
     }
     fclose(fp);
@@ -66,7 +66,7 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
     I = (off_t*)malloc((oldSize + 1) * sizeof(off_t));
     V = (off_t*)malloc((oldSize + 1) * sizeof(off_t));
     if (!I || !V) {
-        bsdiff_WriteError(error, "Out of memory");
+        bsdiff_SetError(error, "Out of memory");
         goto MyExit;
     }
 
@@ -79,15 +79,15 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
 
     // 打开newFile，将其内容读入newFileBuf
     if (!(fp = fopen(newFile, "rb")) || !bsdiff_GetFileSize(fp, &newSize)) {
-        bsdiff_WriteError(error, "Can't open newFile");
+        bsdiff_SetError(error, "Can't open newFile");
         goto MyExit;
     }
     if (!(newFileBuf = (unsigned char*)malloc(newSize + 1))) {
-        bsdiff_WriteError(error, "Out of memory");
+        bsdiff_SetError(error, "Out of memory");
         goto MyExit;
     }
     if (!bsdiff_ReadFile(fp, newFileBuf, newSize)) {
-        bsdiff_WriteError(error, "Can't read newFile");
+        bsdiff_SetError(error, "Can't read newFile");
         goto MyExit;
     }
     fclose(fp);
@@ -97,7 +97,7 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
     diffBlock = (unsigned char*)malloc(newSize + 1);
     extraBlock = (unsigned char*)malloc(newSize + 1);
     if (!diffBlock || !extraBlock) {
-        bsdiff_WriteError(error, "Out of memory");
+        bsdiff_SetError(error, "Out of memory");
         goto MyExit;
     }
 
@@ -106,7 +106,7 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
 
     // 创建（打开）patchFile
     if (!(fp = fopen(patchFile, "wb"))) {
-        bsdiff_WriteError(error, "Can't open patchFile");
+        bsdiff_SetError(error, "Can't open patchFile");
         goto MyExit;
     }
 
@@ -116,13 +116,13 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
     bsdiff_WriteOffset(0, header + 16);
     bsdiff_WriteOffset(newSize, header + 24);
     if (!bsdiff_WriteFile(fp, header, 32)) {
-        bsdiff_WriteError(error, "Can't write patchFile");
+        bsdiff_SetError(error, "Can't write patchFile");
         goto MyExit;
     }
 
     // 紧跟着header的是BZ2(ctrl block)
     if (!(bfp = BZ2_bzWriteOpen(&bzError, fp, 9, 0, 0))) {
-        bsdiff_WriteError(error, "BZ2_bzWriteOpen failed");
+        bsdiff_SetError(error, "BZ2_bzWriteOpen failed");
         goto MyExit;
     }
 
@@ -194,7 +194,7 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
 			bsdiff_WriteOffset((pos-lenb)-(lastpos+lenf), ctrl + 16);
 			BZ2_bzWrite(&bzError, bfp, ctrl, 24);
 			if (bzError != BZ_OK) { 
-				bsdiff_WriteError(error, "BZ2_bzWrite failed");
+				bsdiff_SetError(error, "BZ2_bzWrite failed");
 				goto MyExit;
 			}
 
@@ -205,62 +205,62 @@ int bsdiff_diff(const char *oldFile, const char *newFile, const char *patchFile,
 	};
     BZ2_bzWriteClose(&bzError, bfp, 0, NULL, NULL);
     if (bzError != BZ_OK) {
-        bsdiff_WriteError(error, "BZ2_bzWriteClose failed");
+        bsdiff_SetError(error, "BZ2_bzWriteClose failed");
         goto MyExit;
     }
     bfp = NULL;
 
     // 取得BZ2(ctrl block)的长度，填回到header中去
     if ((len = ftell(fp)) == -1) {
-        bsdiff_WriteError(error, "ftell failed");
+        bsdiff_SetError(error, "ftell failed");
         goto MyExit;
     }
     bsdiff_WriteOffset(len-32, header + 8);
 
     // 写BZ2(diff block)
     if ((bfp = BZ2_bzWriteOpen(&bzError, fp, 9, 0, 0)) == NULL) {
-        bsdiff_WriteError(error, "BZ2_bzWriteOpen failed");
+        bsdiff_SetError(error, "BZ2_bzWriteOpen failed");
         goto MyExit;
     }
     BZ2_bzWrite(&bzError, bfp, diffBlock, diffBlockLen);
     if (bzError != BZ_OK) {
-        bsdiff_WriteError(error, "BZ2_bzWriteClose failed");
+        bsdiff_SetError(error, "BZ2_bzWriteClose failed");
         goto MyExit;
     }
     BZ2_bzWriteClose(&bzError, bfp, 0, NULL, NULL);
     if (bzError != BZ_OK) {
-        bsdiff_WriteError(error, "BZ2_bzWriteClose failed");
+        bsdiff_SetError(error, "BZ2_bzWriteClose failed");
         goto MyExit;
     }
     bfp = NULL;
 
     // 取得BZ2(diff block)的长度，填回到header中去
     if ((len2 = ftell(fp)) == -1) {
-        bsdiff_WriteError(error, "ftell failed");
+        bsdiff_SetError(error, "ftell failed");
         goto MyExit;
     }
     bsdiff_WriteOffset(len2 - len, header + 16);
 
     // 写BZ2(extra block)
     if ((bfp = BZ2_bzWriteOpen(&bzError, fp, 9, 0, 0)) == NULL) {
-        bsdiff_WriteError(error, "BZ2_bzWriteOpen failed");
+        bsdiff_SetError(error, "BZ2_bzWriteOpen failed");
         goto MyExit;
     }
     BZ2_bzWrite(&bzError, bfp, extraBlock, extraBlockLen);
     if (bzError != BZ_OK) {
-        bsdiff_WriteError(error, "BZ2_bzWriteClose failed");
+        bsdiff_SetError(error, "BZ2_bzWriteClose failed");
         goto MyExit;
     }
     BZ2_bzWriteClose(&bzError, bfp, 0, NULL, NULL);
     if (bzError != BZ_OK) {
-        bsdiff_WriteError(error, "BZ2_bzWriteClose failed");
+        bsdiff_SetError(error, "BZ2_bzWriteClose failed");
         goto MyExit;
     }
     bfp = NULL;
 
     // Seek to the beginning, write the header, and close the file
     if (fseek(fp, 0, SEEK_SET) || fwrite(header, 32, 1, fp) != 1 || fclose(fp)) {
-        bsdiff_WriteError(error, "failed to update header");
+        bsdiff_SetError(error, "failed to update header");
         goto MyExit;
     }
     fp = NULL;
