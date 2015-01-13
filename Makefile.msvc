@@ -50,10 +50,10 @@ PATCH_OBJS = \
 all: diff patch
 
 diff: create_dirs $(DIFF_OBJS)
-  link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_diff.exe $(DIFF_OBJS)
+  link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_make.exe $(DIFF_OBJS)
 
 patch: create_dirs $(PATCH_OBJS)
-  link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_patch.exe $(PATCH_OBJS)
+  link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_apply.exe $(PATCH_OBJS)
 
 create_dirs:
 	@if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
