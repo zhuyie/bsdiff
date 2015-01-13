@@ -5,28 +5,33 @@
 
 //------------------------------------------------------------------------------
 
-int bsdiffReadFile(
+int bsdiff_ReadFile(
     FILE *fp, 
     unsigned char *buf, 
     size_t len
     );
 
-int bsdiffWriteFile(
+int bsdiff_WriteFile(
     FILE *fp, 
     const unsigned char *buf, 
     size_t len
     );
 
-int bsdiffGetFileSize(
+int bsdiff_GetFileSize(
     FILE *fp, 
     int *fileSize
     );
 
-int bsdiffReadOffset(
+int bsdiff_ReadOffset(
     unsigned char buf[8]
     );
 
-void bsdiffWriteError(
+void bsdiff_WriteOffset(
+    int offset,
+    unsigned char buf[8]
+    );
+
+void bsdiff_WriteError(
     char error[64], 
     const char *str
     );

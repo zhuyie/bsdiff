@@ -1,8 +1,9 @@
 #include "bsdiff_misc.h"
+#include <assert.h>
 
 //------------------------------------------------------------------------------
 
-int bsdiffReadFile(FILE *fp, unsigned char *buf, size_t len)
+int bsdiff_ReadFile(FILE *fp, unsigned char *buf, size_t len)
 {
     size_t n;
 
@@ -16,7 +17,7 @@ int bsdiffReadFile(FILE *fp, unsigned char *buf, size_t len)
     return 1;
 }
 
-int bsdiffWriteFile(FILE *fp, const unsigned char *buf, size_t len)
+int bsdiff_WriteFile(FILE *fp, const unsigned char *buf, size_t len)
 {
     size_t n;
     
@@ -30,7 +31,7 @@ int bsdiffWriteFile(FILE *fp, const unsigned char *buf, size_t len)
     return 1;
 }
 
-int bsdiffGetFileSize(FILE *fp, int *fileSize)
+int bsdiff_GetFileSize(FILE *fp, int *fileSize)
 {
     if (fseek(fp, 0, SEEK_END))
         return 0;
@@ -45,7 +46,7 @@ int bsdiffGetFileSize(FILE *fp, int *fileSize)
     return 1;
 }
 
-int bsdiffReadOffset(unsigned char buf[8])
+int bsdiff_ReadOffset(unsigned char buf[8])
 {
     unsigned int off = 0;
 
@@ -62,7 +63,22 @@ int bsdiffReadOffset(unsigned char buf[8])
     return (int)off;
 }
 
-void bsdiffWriteError(char error[64], const char *str)
+void bsdiff_WriteOffset(int offset, unsigned char buf[8])
+{
+    assert(offset >= 0);
+
+                    buf[0] = offset % 256;  offset -= buf[0];
+    offset /= 256;  buf[1] = offset % 256;  offset -= buf[1];
+    offset /= 256;  buf[2] = offset % 256;  offset -= buf[2];
+    offset /= 256;  buf[3] = offset % 256;  offset -= buf[3];
+
+    buf[4] = 0;
+    buf[5] = 0;
+    buf[6] = 0;
+    buf[7] = 0;
+}
+
+void bsdiff_WriteError(char error[64], const char *str)
 {
     int i;
     
