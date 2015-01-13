@@ -429,11 +429,11 @@ int main(int argc,char * argv[])
     char error[64];
 
     if (argc != 4) {
-        printf("usage: %s oldfile newfile patchfile\n", argv[0]);
+        printf("usage: %s oldFile newFile patchFile\n", argv[0]);
         return 1;
     }
 
-    if (!bsdiff_diff(argv[1], argv[3], argv[2], error)) {
+    if (!bsdiff_diff(argv[1], argv[2], argv[3], error)) {
         printf("diff failed! error = %s\n", error);
         return 1;
     }
