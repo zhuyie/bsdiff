@@ -209,9 +209,9 @@ MyExit:
 
 //------------------------------------------------------------------------------
 
-// #define TEST_BSDIFF
+// #define BSDIFF_STANDALONE
 
-#ifdef TEST_BSDIFF
+#ifdef BSDIFF_STANDALONE
 
 int main(int argc,char * argv[])
 {
@@ -230,4 +230,4 @@ int main(int argc,char * argv[])
     return 0;
 }
 
-#endif // TEST_BSDIFF
+#endif // BSDIFF_STANDALONE

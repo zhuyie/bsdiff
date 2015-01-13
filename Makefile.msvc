@@ -4,7 +4,7 @@
 # nmake -f Makefile.msvc [MY_MTDLL=1] [MY_DEBUG=1]
 
 # 用/Z7避免VC编译时产生vc80.pdb; 用/incremental:no避免产生ilk文件;
-CFLAGS = $(CFLAGS) /W3 /D_CRT_SECURE_NO_WARNINGS /DTEST_BSDIFF /Z7
+CFLAGS = $(CFLAGS) /W3 /D_CRT_SECURE_NO_WARNINGS /DBSDIFF_STANDALONE /Z7
 LFLAGS = $(LFLAGS) /DEBUG /INCREMENTAL:NO
 
 # 静态链接CRT还是动态链接CRT

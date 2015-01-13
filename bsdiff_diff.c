@@ -420,9 +420,9 @@ static off_t search(off_t *I, u_char *old, off_t oldsize,
 
 //------------------------------------------------------------------------------
 
-// #define TEST_BSDIFF
+// #define BSDIFF_STANDALONE
 
-#ifdef TEST_BSDIFF
+#ifdef BSDIFF_STANDALONE
 
 int main(int argc,char * argv[])
 {
@@ -441,4 +441,4 @@ int main(int argc,char * argv[])
     return 0;
 }
 
-#endif // TEST_BSDIFF
+#endif // BSDIFF_STANDALONE
