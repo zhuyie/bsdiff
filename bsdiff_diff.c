@@ -20,15 +20,15 @@ static void qsufsort(
     off_t oldsize
     );
 static off_t search(
-	off_t *I, 
-	u_char *old, 
-	off_t oldsize,
-	u_char *_new, 
-	off_t newsize, 
-	off_t st, 
-	off_t en, 
-	off_t *pos
-	);
+    off_t *I, 
+    u_char *old, 
+    off_t oldsize,
+    u_char *_new, 
+    off_t newsize, 
+    off_t st, 
+    off_t en, 
+    off_t *pos
+    );
 
 //------------------------------------------------------------------------------
 

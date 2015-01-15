@@ -56,12 +56,12 @@ patch: create_dirs $(PATCH_OBJS)
   link $(LFLAGS) /nologo /out:$(BIN_DIR)\bsdiff_apply.exe $(PATCH_OBJS)
 
 create_dirs:
-	@if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
-	@if not exist $(BIN_DIR) mkdir $(BIN_DIR)
+  @if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
+  @if not exist $(BIN_DIR) mkdir $(BIN_DIR)
 
 {$(SRC_DIR)}.c{$(OBJ_DIR)}.obj:
-	cl $(CFLAGS) -c -nologo -Fo$(OBJ_DIR)\ $<
+  cl $(CFLAGS) -c -nologo -Fo$(OBJ_DIR)\ $<
 
 clean:
-	@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
-	@if exist $(BIN_DIR) rmdir /s /q $(BIN_DIR)
+  @if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
+  @if exist $(BIN_DIR) rmdir /s /q $(BIN_DIR)
