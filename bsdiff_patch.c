@@ -223,10 +223,10 @@ int main(int argc,char * argv[])
     }
 
     if (!bsdiff_patch(argv[1], argv[2], argv[3], error)) {
-        printf("patch failed! error = %s\n", error);
+        printf("PatchFile failed! error = %s\n", error);
         return 1;
     }
-    printf("patch OK\n");
+    printf("PatchFile OK\n");
     return 0;
 }
 

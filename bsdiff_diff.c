@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include "bzlib.h"
+#ifdef _WIN32
+  #define WIN32_LEAN_AND_MEAN
+  #include <windows.h>
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -424,21 +428,142 @@ static off_t search(off_t *I, u_char *old, off_t oldsize,
 
 #ifdef BSDIFF_STANDALONE
 
-int main(int argc,char * argv[])
+#ifdef _WIN32
+
+int bsdiff_diff_dir(
+    const char *oldDir, 
+    const char *newDir, 
+    const char *diffDir,
+    char subPath[MAX_PATH]
+    )
 {
+    int retCode = 0;
+    char newFile[MAX_PATH], oldFile[MAX_PATH], diffFile[MAX_PATH];
+    size_t newFileLen, oldFileLen, diffFileLen, subPathLen;
+    WIN32_FIND_DATAA wfd;
+    HANDLE findHandle, fileHandle;
     char error[64];
 
-    if (argc != 4) {
-        printf("usage: %s oldFile newFile patchFile\n", argv[0]);
-        return 1;
-    }
+    strcpy(newFile, newDir);
+    strcat(newFile, subPath);
+    newFileLen = strlen(newFile);
+    strcat(newFile, "*");
 
-    if (!bsdiff_diff(argv[1], argv[2], argv[3], error)) {
-        printf("diff failed! error = %s\n", error);
-        return 1;
+    strcpy(oldFile, oldDir);
+    strcat(oldFile, subPath);
+    oldFileLen = strlen(oldFile);
+
+    strcpy(diffFile, diffDir);
+    strcat(diffFile, subPath);
+    diffFileLen = strlen(diffFile);
+    CreateDirectoryA(diffFile, NULL);  // Create sub directory in diffDir
+
+    subPathLen = strlen(subPath);
+
+    findHandle = FindFirstFileA(newFile, &wfd);
+    if (findHandle == INVALID_HANDLE_VALUE) {
+        printf("ERROR: OpenDir %s%s, error=%d\n", newDir, subPath, GetLastError());
+        goto MyExit;
     }
-    printf("diff OK\n");
-    return 0;
+    do {
+        if (wfd.cFileName[0] == '.' && wfd.cFileName[1] == '\0')
+            continue;
+        if (wfd.cFileName[0] == '.' && wfd.cFileName[1] == '.' && wfd.cFileName[2] == '\0')
+            continue;
+
+        if (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            // 子目录，递归进去
+            strcpy(subPath + subPathLen, wfd.cFileName);
+            strcat(subPath, "\\");
+            if (!bsdiff_diff_dir(oldDir, newDir, diffDir, subPath)) {
+                goto MyExit;
+            }
+            subPath[subPathLen] = '\0';
+
+        } else {
+            // 检查oldDir中有没有同名文件
+            strcpy(oldFile + oldFileLen, wfd.cFileName);
+            fileHandle = CreateFileA(oldFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (fileHandle != INVALID_HANDLE_VALUE) {
+                CloseHandle(fileHandle);
+                fileHandle = INVALID_HANDLE_VALUE;
+
+                strcpy(newFile + newFileLen, wfd.cFileName);
+                strcpy(diffFile + diffFileLen, wfd.cFileName);
+                strcat(diffFile, ".diff");
+
+                // 生成diff文件
+                if (!bsdiff_diff(oldFile, newFile, diffFile, error)) {
+                    printf("ERROR: MakeDiff %s, error=%s\n", newFile, error);
+                    goto MyExit;
+                }
+                printf("OK: MakeDiff %s\n", newFile);
+
+                newFile[newFileLen] = '\0';
+                diffFile[diffFileLen] = '\0';
+
+            } else {
+                // 直接复制文件
+                strcpy(newFile + newFileLen, wfd.cFileName);
+                strcpy(diffFile + diffFileLen, wfd.cFileName);
+
+                if (!CopyFileA(newFile, diffFile, FALSE)) {
+                    printf("ERROR: CopyFile %s, error=%d\n", newFile, GetLastError());
+                    goto MyExit;
+                }
+                printf("OK: CopyFile %s\n", newFile);
+				
+                newFile[newFileLen] = '\0';
+                diffFile[diffFileLen] = '\0';
+            }
+            oldFile[oldFileLen] = '\0';
+        }
+    } while (FindNextFileA(findHandle, &wfd));
+
+    retCode = 1;
+
+MyExit:
+    if (findHandle != INVALID_HANDLE_VALUE)
+        FindClose(findHandle);
+    return retCode;
+}
+
+#endif  // _WIN32
+
+int main(int argc,char * argv[])
+{
+    if (argc == 5) {
+        if (strcmp(argv[1], "-f") == 0) {
+            char error[64];
+            if (!bsdiff_diff(argv[2], argv[3], argv[4], error)) {
+                printf("DiffFile failed! error = %s\n", error);
+                return 1;
+            }
+            printf("DiffFile OK\n");
+            return 0;
+
+    #ifdef _WIN32
+        } else if (strcmp(argv[1], "-d") == 0) {
+            char subPath[MAX_PATH];
+            strcpy(subPath, "\\");
+            printf("-------------------------------------------------------------------------------\n");
+            if (!bsdiff_diff_dir(argv[2], argv[3], argv[4], subPath)) {
+                printf("-------------------------------------------------------------------------------\n");
+                printf("DiffDir failed!\n");
+                return 1;
+            }
+            printf("-------------------------------------------------------------------------------\n");
+            printf("DiffDir OK\n");
+            return 0;
+    #endif  // _WIN32
+        }
+    }
+    
+    printf("usage: %s -f oldFile newFile patchFile\n", argv[0]);
+#ifdef _WIN32
+    printf("       %s -d oldDir newDir diffDir\n", argv[0]);
+#endif  // _WIN32
+    return 1;
 }
 
 #endif // BSDIFF_STANDALONE
