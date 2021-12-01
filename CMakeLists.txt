@@ -13,6 +13,10 @@ add_executable(bsdiff
     3rdparty/bzip2/randtable.c)
 target_include_directories(bsdiff
     PUBLIC "3rdparty/bzip2")
+if (MSVC)
+    target_compile_definitions(bsdiff
+        PUBLIC "_CRT_SECURE_NO_WARNINGS")
+endif()
 
 add_executable(bspatch 
     source/bspatch.c
@@ -25,3 +29,7 @@ add_executable(bspatch
     3rdparty/bzip2/randtable.c)
 target_include_directories(bspatch
     PUBLIC "3rdparty/bzip2")
+if (MSVC)
+    target_compile_definitions(bspatch
+        PUBLIC "_CRT_SECURE_NO_WARNINGS")
+endif()
