@@ -1,5 +1,6 @@
 /*-
  * Copyright 2003-2005 Colin Percival
+ * Copyright 2021 zhuyie
  * All rights reserved
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ''AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -24,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "bspatch.h"
 #include "common.h"
 
 static off_t offtin(u_char *buf)
@@ -45,7 +47,10 @@ static off_t offtin(u_char *buf)
 	return y;
 }
 
-int main(int argc,char * argv[])
+int bspatch(
+	const char *oldfile, 
+	const char *patchfile, 
+	const char *newfile)
 {
 	FILE *f, *cpf, *dpf, *epf;
 	BZFILE *cpfbz2, *dpfbz2, *epfbz2;
@@ -59,12 +64,9 @@ int main(int argc,char * argv[])
 	off_t lenread;
 	off_t i;
 
-	if (argc != 4)
-		errx(1,"usage: %s oldfile newfile patchfile\n",argv[0]);
-
 	/* Open patch file */
-	if ((f = fopen(argv[3], "r")) == NULL)
-		err(1, "fopen(%s)", argv[3]);
+	if ((f = fopen(patchfile, "r")) == NULL)
+		err(1, "fopen(%s)", patchfile);
 
 	/*
 	File format:
@@ -84,7 +86,7 @@ int main(int argc,char * argv[])
 	if (fread(header, 1, 32, f) < 32) {
 		if (feof(f))
 			errx(1, "Corrupt patch\n");
-		err(1, "fread(%s)", argv[3]);
+		err(1, "fread(%s)", patchfile);
 	}
 
 	/* Check for appropriate magic */
@@ -100,28 +102,28 @@ int main(int argc,char * argv[])
 
 	/* Close patch file and re-open it via libbzip2 at the right places */
 	if (fclose(f))
-		err(1, "fclose(%s)", argv[3]);
-	if ((cpf = fopen(argv[3], "r")) == NULL)
-		err(1, "fopen(%s)", argv[3]);
+		err(1, "fclose(%s)", patchfile);
+	if ((cpf = fopen(patchfile, "r")) == NULL)
+		err(1, "fopen(%s)", patchfile);
 	if (fseek(cpf, 32, SEEK_SET))
-		err(1, "fseek(%s, %lld)", argv[3], (long long)32);
+		err(1, "fseek(%s, %lld)", patchfile, (long long)32);
 	if ((cpfbz2 = BZ2_bzReadOpen(&cbz2err, cpf, 0, 0, NULL, 0)) == NULL)
 		errx(1, "BZ2_bzReadOpen, bz2err = %d", cbz2err);
-	if ((dpf = fopen(argv[3], "r")) == NULL)
-		err(1, "fopen(%s)", argv[3]);
+	if ((dpf = fopen(patchfile, "r")) == NULL)
+		err(1, "fopen(%s)", patchfile);
 	if (fseek(dpf, 32 + bzctrllen, SEEK_SET))
-		err(1, "fseek(%s, %lld)", argv[3], (long long)bzctrllen + 32);
+		err(1, "fseek(%s, %lld)", patchfile, (long long)bzctrllen + 32);
 	if ((dpfbz2 = BZ2_bzReadOpen(&dbz2err, dpf, 0, 0, NULL, 0)) == NULL)
 		errx(1, "BZ2_bzReadOpen, bz2err = %d", dbz2err);
-	if ((epf = fopen(argv[3], "r")) == NULL)
-		err(1, "fopen(%s)", argv[3]);
+	if ((epf = fopen(patchfile, "r")) == NULL)
+		err(1, "fopen(%s)", patchfile);
 	if (fseek(epf, 32 + bzctrllen + bzdatalen, SEEK_SET))
-		err(1, "fseek(%s, %lld)", argv[3], 
+		err(1, "fseek(%s, %lld)", patchfile, 
 			(long long)bzctrllen + bzdatalen + 32);
 	if ((epfbz2 = BZ2_bzReadOpen(&ebz2err, epf, 0, 0, NULL, 0)) == NULL)
 		errx(1, "BZ2_bzReadOpen, bz2err = %d", ebz2err);
 
-	if (((f = fopen(argv[1], "r")) == NULL) ||
+	if (((f = fopen(oldfile, "r")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((oldsize = ftell(f)) == -1) ||
 		(fseek(f, 0, SEEK_SET) != 0) ||
@@ -129,7 +131,7 @@ int main(int argc,char * argv[])
 		(fread(old, 1, oldsize, f) != oldsize) ||
 		(fclose(f) != 0))
 	{
-		err(1, "fopen(%s)", argv[1]);
+		err(1, "fopen(%s)", oldfile);
 	}
 
 	if ((new = malloc(newsize + 1)) == NULL)
@@ -190,14 +192,14 @@ int main(int argc,char * argv[])
 	BZ2_bzReadClose(&dbz2err, dpfbz2);
 	BZ2_bzReadClose(&ebz2err, epfbz2);
 	if (fclose(cpf) || fclose(dpf) || fclose(epf))
-		err(1, "fclose(%s)", argv[3]);
+		err(1, "fclose(%s)", patchfile);
 
 	/* Write the new file */
-	if (((f = fopen(argv[2], "w")) == NULL) ||
+	if (((f = fopen(newfile, "w")) == NULL) ||
 		(fwrite(new, 1, newsize, f) != newsize) ||
 		(fclose(f) != 0))
 	{
-		err(1, "fopen(%s)", argv[2]);
+		err(1, "fopen(%s)", newfile);
 	}
 
 	free(new);

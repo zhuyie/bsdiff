@@ -1,5 +1,6 @@
 /*-
  * Copyright 2003-2005 Colin Percival
+ * Copyright 2021 zhuyie
  * All rights reserved
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ''AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -24,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "bsdiff.h"
 #include "common.h"
 
 #define MIN(x,y) (((x)<(y)) ? (x) : (y))
@@ -215,7 +217,10 @@ static void offtout(off_t x, u_char *buf)
 		buf[7] |= 0x80;
 }
 
-int main(int argc,char *argv[])
+int bsdiff(
+	const char *oldfile, 
+	const char *newfile, 
+	const char *patchfile)
 {
 	u_char *old, *new;
 	off_t oldsize, newsize;
@@ -234,12 +239,9 @@ int main(int argc,char *argv[])
 	BZFILE *pfbz2;
 	int bz2err;
 
-	if (argc != 4)
-		errx(1, "usage: %s oldfile newfile patchfile\n", argv[0]);
-
 	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if (((f = fopen(argv[1], "r")) == NULL) ||
+	if (((f = fopen(oldfile, "r")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((oldsize = ftell(f)) == -1) ||
 		(fseek(f, 0, SEEK_SET) != 0) ||
@@ -247,7 +249,7 @@ int main(int argc,char *argv[])
 		(fread(old, 1, oldsize, f) != oldsize) ||
 		(fclose(f) != 0))
 	{
-		err(1, "fopen(%s)", argv[1]);
+		err(1, "fopen(%s)", oldfile);
 	}
 
 	if (((I = malloc((oldsize + 1) * sizeof(off_t))) == NULL) ||
@@ -262,7 +264,7 @@ int main(int argc,char *argv[])
 
 	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if (((f = fopen(argv[2], "r")) == NULL) ||
+	if (((f = fopen(newfile, "r")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((newsize = ftell(f)) == -1) ||
 		(fseek(f, 0, SEEK_SET) != 0) ||
@@ -270,7 +272,7 @@ int main(int argc,char *argv[])
 		(fread(new, 1, newsize, f) != newsize) ||
 		(fclose(f) != 0))
 	{
-		err(1, "fopen(%s)", argv[2]);
+		err(1, "fopen(%s)", newfile);
 	}
 
 	if (((db = malloc(newsize + 1)) == NULL) ||
@@ -282,8 +284,8 @@ int main(int argc,char *argv[])
 	eblen = 0;
 
 	/* Create the patch file */
-	if ((pf = fopen(argv[3], "w")) == NULL)
-		err(1, "%s", argv[3]);
+	if ((pf = fopen(patchfile, "w")) == NULL)
+		err(1, "%s", patchfile);
 
 	/* Header is
 		0	8	 "BSDIFF40"
@@ -300,7 +302,7 @@ int main(int argc,char *argv[])
 	offtout(0, header + 16);
 	offtout(newsize, header + 24);
 	if (fwrite(header, 32, 1, pf) != 1)
-		err(1, "fwrite(%s)", argv[3]);
+		err(1, "fwrite(%s)", patchfile);
 
 	/* Compute the differences, writing ctrl as we go */
 	if ((pfbz2 = BZ2_bzWriteOpen(&bz2err, pf, 9, 0, 0)) == NULL)
@@ -450,7 +452,7 @@ int main(int argc,char *argv[])
 	if (fseek(pf, 0, SEEK_SET))
 		err(1, "fseek");
 	if (fwrite(header, 32, 1, pf) != 1)
-		err(1, "fwrite(%s)", argv[3]);
+		err(1, "fwrite(%s)", patchfile);
 	if (fclose(pf))
 		err(1, "fclose");
 
