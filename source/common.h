@@ -6,14 +6,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
 
 #if defined(_MSC_VER)
 
 #include <basetsd.h>
 typedef SSIZE_T ssize_t;
-
-#include <io.h>  // open, close, lseek, read, write
 
 #define err(eval, fmt, ...) \
   do { \
@@ -32,7 +29,6 @@ typedef SSIZE_T ssize_t;
 #else
 
 #include <err.h>
-#include <unistd.h>
 
 #endif
 

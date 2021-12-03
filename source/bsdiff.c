@@ -217,7 +217,6 @@ static void offtout(off_t x, u_char *buf)
 
 int main(int argc,char *argv[])
 {
-	int fd;
 	u_char *old, *new;
 	off_t oldsize, newsize;
 	off_t *I, *V;
@@ -231,7 +230,7 @@ int main(int argc,char *argv[])
 	u_char *db, *eb;
 	u_char buf[8];
 	u_char header[32];
-	FILE *pf;
+	FILE *f, *pf;
 	BZFILE *pfbz2;
 	int bz2err;
 
@@ -240,14 +239,15 @@ int main(int argc,char *argv[])
 
 	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if (((fd = open(argv[1], O_RDONLY, 0)) < 0) ||
-		((oldsize = lseek(fd, 0, SEEK_END)) == -1) ||
+	if (((f = fopen(argv[1], "r")) == NULL) ||
+		(fseek(f, 0, SEEK_END) != 0) ||
+		((oldsize = ftell(f)) == -1) ||
+		(fseek(f, 0, SEEK_SET) != 0) ||
 		((old = malloc(oldsize + 1)) == NULL) ||
-		(lseek(fd, 0, SEEK_SET) != 0) ||
-		(read(fd, old, oldsize) != oldsize) ||
-		(close(fd) == -1))
+		(fread(old, 1, oldsize, f) != oldsize) ||
+		(fclose(f) != 0))
 	{
-		err(1, "%s", argv[1]);
+		err(1, "fopen(%s)", argv[1]);
 	}
 
 	if (((I = malloc((oldsize + 1) * sizeof(off_t))) == NULL) ||
@@ -262,14 +262,15 @@ int main(int argc,char *argv[])
 
 	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if (((fd = open(argv[2], O_RDONLY, 0)) < 0) ||
-		((newsize = lseek(fd, 0, SEEK_END)) == -1) ||
+	if (((f = fopen(argv[2], "r")) == NULL) ||
+		(fseek(f, 0, SEEK_END) != 0) ||
+		((newsize = ftell(f)) == -1) ||
+		(fseek(f, 0, SEEK_SET) != 0) ||
 		((new = malloc(newsize + 1)) == NULL) ||
-		(lseek(fd, 0, SEEK_SET) != 0) ||
-		(read(fd, new, newsize) != newsize) ||
-		(close(fd) == -1))
+		(fread(new, 1, newsize, f) != newsize) ||
+		(fclose(f) != 0))
 	{
-		err(1, "%s", argv[2]);
+		err(1, "fopen(%s)", argv[2]);
 	}
 
 	if (((db = malloc(newsize + 1)) == NULL) ||

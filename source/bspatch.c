@@ -50,7 +50,6 @@ int main(int argc,char * argv[])
 	FILE *f, *cpf, *dpf, *epf;
 	BZFILE *cpfbz2, *dpfbz2, *epfbz2;
 	int cbz2err, dbz2err, ebz2err;
-	int fd;
 	ssize_t oldsize, newsize;
 	ssize_t bzctrllen, bzdatalen;
 	u_char header[32], buf[8];
@@ -122,15 +121,17 @@ int main(int argc,char * argv[])
 	if ((epfbz2 = BZ2_bzReadOpen(&ebz2err, epf, 0, 0, NULL, 0)) == NULL)
 		errx(1, "BZ2_bzReadOpen, bz2err = %d", ebz2err);
 
-	if (((fd = open(argv[1], O_RDONLY, 0)) < 0) ||
-		((oldsize = lseek(fd, 0, SEEK_END)) == -1) ||
+	if (((f = fopen(argv[1], "r")) == NULL) ||
+		(fseek(f, 0, SEEK_END) != 0) ||
+		((oldsize = ftell(f)) == -1) ||
+		(fseek(f, 0, SEEK_SET) != 0) ||
 		((old = malloc(oldsize + 1)) == NULL) ||
-		(lseek(fd, 0, SEEK_SET) != 0) ||
-		(read(fd, old, oldsize) != oldsize) ||
-		(close(fd) == -1))
+		(fread(old, 1, oldsize, f) != oldsize) ||
+		(fclose(f) != 0))
 	{
-		err(1, "%s", argv[1]);
+		err(1, "fopen(%s)", argv[1]);
 	}
+
 	if ((new = malloc(newsize + 1)) == NULL)
 		err(1, NULL);
 
@@ -192,11 +193,11 @@ int main(int argc,char * argv[])
 		err(1, "fclose(%s)", argv[3]);
 
 	/* Write the new file */
-	if (((fd = open(argv[2], O_CREAT | O_TRUNC | O_WRONLY, 0666)) < 0) ||
-		(write(fd, new, newsize) != newsize) ||
-		(close(fd) == -1))
+	if (((f = fopen(argv[2], "w")) == NULL) ||
+		(fwrite(new, 1, newsize, f) != newsize) ||
+		(fclose(f) != 0))
 	{
-		err(1, "%s", argv[2]);
+		err(1, "fopen(%s)", argv[2]);
 	}
 
 	free(new);
