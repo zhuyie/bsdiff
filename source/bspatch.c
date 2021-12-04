@@ -52,13 +52,14 @@ int bspatch(
 	const char *patchfile, 
 	const char *newfile)
 {
-	FILE *f, *cpf, *dpf, *epf;
-	BZFILE *cpfbz2, *dpfbz2, *epfbz2;
+	int ret;
+	FILE *f = NULL, *cpf = NULL, *dpf = NULL, *epf = NULL;
+	BZFILE *cpfbz2 = NULL, *dpfbz2 = NULL, *epfbz2 = NULL;
 	int cbz2err, dbz2err, ebz2err;
 	ssize_t oldsize, newsize;
 	ssize_t bzctrllen, bzdatalen;
 	u_char header[32], buf[8];
-	u_char *old, *new;
+	u_char *old = NULL, *new = NULL;
 	off_t oldpos, newpos;
 	off_t ctrl[3];
 	off_t lenread;
@@ -66,7 +67,7 @@ int bspatch(
 
 	/* Open patch file */
 	if ((f = fopen(patchfile, "r")) == NULL)
-		err(1, "fopen(%s)", patchfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 
 	/*
 	File format:
@@ -85,57 +86,61 @@ int bspatch(
 	/* Read header */
 	if (fread(header, 1, 32, f) < 32) {
 		if (feof(f))
-			errx(1, "Corrupt patch\n");
-		err(1, "fread(%s)", patchfile);
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "header");
+		else
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", patchfile);
 	}
 
 	/* Check for appropriate magic */
 	if (memcmp(header, "BSDIFF40", 8) != 0)
-		errx(1, "Corrupt patch\n");
+		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "header");
 
 	/* Read lengths from header */
 	bzctrllen = offtin(header + 8);
 	bzdatalen = offtin(header + 16);
 	newsize = offtin(header + 24);
 	if ((bzctrllen < 0) || (bzdatalen < 0) || (newsize < 0))
-		errx(1,"Corrupt patch\n");
+		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "lengths");
 
 	/* Close patch file and re-open it via libbzip2 at the right places */
-	if (fclose(f))
-		err(1, "fclose(%s)", patchfile);
+	fclose(f);
+	f = NULL;
 	if ((cpf = fopen(patchfile, "r")) == NULL)
-		err(1, "fopen(%s)", patchfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(cpf, 32, SEEK_SET))
-		err(1, "fseek(%s, %lld)", patchfile, (long long)32);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)32);
 	if ((cpfbz2 = BZ2_bzReadOpen(&cbz2err, cpf, 0, 0, NULL, 0)) == NULL)
-		errx(1, "BZ2_bzReadOpen, bz2err = %d", cbz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(cpfbz2), bz2err(%d)", cbz2err);
 	if ((dpf = fopen(patchfile, "r")) == NULL)
-		err(1, "fopen(%s)", patchfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(dpf, 32 + bzctrllen, SEEK_SET))
-		err(1, "fseek(%s, %lld)", patchfile, (long long)bzctrllen + 32);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)bzctrllen + 32);
 	if ((dpfbz2 = BZ2_bzReadOpen(&dbz2err, dpf, 0, 0, NULL, 0)) == NULL)
-		errx(1, "BZ2_bzReadOpen, bz2err = %d", dbz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(dpfbz2), bz2err(%d)", dbz2err);
 	if ((epf = fopen(patchfile, "r")) == NULL)
-		err(1, "fopen(%s)", patchfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(epf, 32 + bzctrllen + bzdatalen, SEEK_SET))
-		err(1, "fseek(%s, %lld)", patchfile, 
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, 
 			(long long)bzctrllen + bzdatalen + 32);
 	if ((epfbz2 = BZ2_bzReadOpen(&ebz2err, epf, 0, 0, NULL, 0)) == NULL)
-		errx(1, "BZ2_bzReadOpen, bz2err = %d", ebz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(epfbz2), bz2err(%d)", ebz2err);
 
 	if (((f = fopen(oldfile, "r")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((oldsize = ftell(f)) == -1) ||
-		(fseek(f, 0, SEEK_SET) != 0) ||
-		((old = malloc(oldsize + 1)) == NULL) ||
-		(fread(old, 1, oldsize, f) != oldsize) ||
-		(fclose(f) != 0))
+		(fseek(f, 0, SEEK_SET) != 0))
 	{
-		err(1, "fopen(%s)", oldfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s", oldfile);
 	}
+	if ((old = malloc(oldsize + 1)) == NULL)
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "old");
+	if (fread(old, 1, oldsize, f) != oldsize)
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", oldfile);
+	fclose(f);
+	f = NULL;
 
 	if ((new = malloc(newsize + 1)) == NULL)
-		err(1, NULL);
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "new");
 
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
@@ -145,20 +150,22 @@ int bspatch(
 			if ((lenread < 8) || ((cbz2err != BZ_OK) &&
 				(cbz2err != BZ_STREAM_END)))
 			{
-				errx(1, "Corrupt patch\n");
+				HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "read control data");
 			}
 			ctrl[i] = offtin(buf);
 		};
 
 		/* Sanity-check */
 		if (newpos + ctrl[0] > newsize)
-			errx(1, "Corrupt patch\n");
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
 		/* Read diff string */
 		lenread = BZ2_bzRead(&dbz2err, dpfbz2, new + newpos, ctrl[0]);
 		if ((lenread < ctrl[0]) ||
 		    ((dbz2err != BZ_OK) && (dbz2err != BZ_STREAM_END)))
-			errx(1, "Corrupt patch\n");
+		{
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "read diff string");
+		}
 
 		/* Add old data to diff string */
 		for (i = 0; i < ctrl[0]; i++) {
@@ -172,14 +179,14 @@ int bspatch(
 
 		/* Sanity-check */
 		if (newpos + ctrl[1] > newsize)
-			errx(1, "Corrupt patch\n");
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
 		/* Read extra string */
 		lenread = BZ2_bzRead(&ebz2err, epfbz2, new + newpos, ctrl[1]);
 		if ((lenread < ctrl[1]) ||
 			((ebz2err != BZ_OK) && (ebz2err != BZ_STREAM_END)))
 		{
-			errx(1, "Corrupt patch\n");
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "read extra string");
 		}
 
 		/* Adjust pointers */
@@ -187,23 +194,25 @@ int bspatch(
 		oldpos += ctrl[2];
 	};
 
-	/* Clean up the bzip2 reads */
-	BZ2_bzReadClose(&cbz2err, cpfbz2);
-	BZ2_bzReadClose(&dbz2err, dpfbz2);
-	BZ2_bzReadClose(&ebz2err, epfbz2);
-	if (fclose(cpf) || fclose(dpf) || fclose(epf))
-		err(1, "fclose(%s)", patchfile);
-
 	/* Write the new file */
 	if (((f = fopen(newfile, "w")) == NULL) ||
-		(fwrite(new, 1, newsize, f) != newsize) ||
-		(fclose(f) != 0))
+		(fwrite(new, 1, newsize, f) != newsize))
 	{
-		err(1, "fopen(%s)", newfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", newfile);
 	}
 
-	free(new);
-	free(old);
+	ret = BSDIFF_SUCCESS;
 
-	return 0;
+cleanup:
+	if (cpfbz2 != NULL) { BZ2_bzReadClose(&cbz2err, cpfbz2); }
+	if (dpfbz2 != NULL) { BZ2_bzReadClose(&dbz2err, dpfbz2); }
+	if (epfbz2 != NULL) { BZ2_bzReadClose(&ebz2err, epfbz2); }
+	if (cpf != NULL) { fclose(cpf); }
+	if (dpf != NULL) { fclose(dpf); }
+	if (epf != NULL) { fclose(epf); }
+	if (f != NULL) { fclose(f); }
+	if (new != NULL) { free(new); }
+	if (old != NULL) { free(old); }
+
+	return ret;
 }

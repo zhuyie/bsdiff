@@ -12,24 +12,15 @@
 #include <basetsd.h>
 typedef SSIZE_T ssize_t;
 
-#define err(eval, fmt, ...) \
-  do { \
-    fprintf(stderr, fmt, __VA_ARGS__); \
-    fprintf(stderr, ": %s\n", strerror(errno)); \
-    exit(eval); \
-  } while(0)
-
-#define errx(eval, fmt, ...) \
-  do { \
-    fprintf(stderr, fmt, __VA_ARGS__); \
-    fprintf(stderr, "\n"); \
-    exit(eval); \
-  } while(0)
-
-#else
-
-#include <err.h>
-
 #endif
+
+#define HANDLE_ERROR(errcode, fmt, ...) \
+  do { \
+    fprintf(stderr, "ERROR(%d): ", errcode); \
+    fprintf(stderr, fmt, ##__VA_ARGS__); \
+    fprintf(stderr, "\n"); \
+    ret = errcode; \
+    goto cleanup; \
+  } while (0)
 
 #endif // !__BSDIFF_COMMON_H__

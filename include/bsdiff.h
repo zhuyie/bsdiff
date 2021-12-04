@@ -32,6 +32,13 @@
 extern "C" {
 #endif
 
+/* return codes */
+#define BSDIFF_SUCCESS 0
+#define BSDIFF_ERROR 1                  /* generic error */
+#define BSDIFF_OUT_OF_MEMORY 2          /* out of memory */
+#define BSDIFF_FILE_ERROR 3             /* file related errors */
+#define BSDIFF_CORRUPT_PATCH 4          /* corrupt patch data */
+
 int bsdiff(
     const char *oldfile, 
     const char *newfile, 

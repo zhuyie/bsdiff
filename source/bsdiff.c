@@ -222,9 +222,10 @@ int bsdiff(
 	const char *newfile, 
 	const char *patchfile)
 {
-	u_char *old, *new;
+	int ret;
+	u_char *old = NULL, *new = NULL;
 	off_t oldsize, newsize;
-	off_t *I, *V;
+	off_t *I = NULL, *V = NULL;
 	off_t scan, pos, len;
 	off_t lastscan, lastpos, lastoffset;
 	off_t oldscore, scsc;
@@ -232,11 +233,11 @@ int bsdiff(
 	off_t overlap, Ss, lens;
 	off_t i;
 	off_t dblen, eblen;
-	u_char *db, *eb;
+	u_char *db = NULL, *eb = NULL;
 	u_char buf[8];
 	u_char header[32];
-	FILE *f, *pf;
-	BZFILE *pfbz2;
+	FILE *f = NULL, *pf = NULL;
+	BZFILE *pfbz2 = NULL;
 	int bz2err;
 
 	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
@@ -244,48 +245,55 @@ int bsdiff(
 	if (((f = fopen(oldfile, "r")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((oldsize = ftell(f)) == -1) ||
-		(fseek(f, 0, SEEK_SET) != 0) ||
-		((old = malloc(oldsize + 1)) == NULL) ||
-		(fread(old, 1, oldsize, f) != oldsize) ||
-		(fclose(f) != 0))
+		(fseek(f, 0, SEEK_SET) != 0))
 	{
-		err(1, "fopen(%s)", oldfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", oldfile);
 	}
+	if ((old = malloc(oldsize + 1)) == NULL)
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "old");
+	if (fread(old, 1, oldsize, f) != oldsize)
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", oldfile);
+	fclose(f);
+	f = NULL;
 
 	if (((I = malloc((oldsize + 1) * sizeof(off_t))) == NULL) ||
 		((V = malloc((oldsize + 1) * sizeof(off_t))) == NULL))
 	{
-		err(1, NULL);
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "I/V");
 	}
 
 	qsufsort(I, V, old, oldsize);
 
 	free(V);
+	V = NULL;
 
 	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
 	if (((f = fopen(newfile, "r")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((newsize = ftell(f)) == -1) ||
-		(fseek(f, 0, SEEK_SET) != 0) ||
-		((new = malloc(newsize + 1)) == NULL) ||
-		(fread(new, 1, newsize, f) != newsize) ||
-		(fclose(f) != 0))
+		(fseek(f, 0, SEEK_SET) != 0))
 	{
-		err(1, "fopen(%s)", newfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", newfile);
 	}
+	if ((new = malloc(newsize + 1)) == NULL)
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "new");
+	if (fread(new, 1, newsize, f) != newsize)
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", newfile);
+	fclose(f);
+	f = NULL;
 
 	if (((db = malloc(newsize + 1)) == NULL) ||
 		((eb = malloc(newsize + 1)) == NULL))
 	{
-		err(1, NULL);
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "db/eb");
 	}
 	dblen = 0;
 	eblen = 0;
 
 	/* Create the patch file */
 	if ((pf = fopen(patchfile, "w")) == NULL)
-		err(1, "%s", patchfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 
 	/* Header is
 		0	8	 "BSDIFF40"
@@ -302,11 +310,11 @@ int bsdiff(
 	offtout(0, header + 16);
 	offtout(newsize, header + 24);
 	if (fwrite(header, 32, 1, pf) != 1)
-		err(1, "fwrite(%s)", patchfile);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fwrite(%s)", patchfile);
 
 	/* Compute the differences, writing ctrl as we go */
 	if ((pfbz2 = BZ2_bzWriteOpen(&bz2err, pf, 9, 0, 0)) == NULL)
-		errx(1, "BZ2_bzWriteOpen, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteOpen, bz2err(%d)", bz2err);
 	scan = 0; len = 0;
 	lastscan = 0; lastpos = 0; lastoffset = 0;
 	while (scan < newsize) {
@@ -397,17 +405,17 @@ int bsdiff(
 			offtout(lenf,buf);
 			BZ2_bzWrite(&bz2err, pfbz2, buf, 8);
 			if (bz2err != BZ_OK)
-				errx(1, "BZ2_bzWrite, bz2err = %d", bz2err);
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWrite, bz2err(%d)", bz2err);
 
 			offtout((scan-lenb)-(lastscan+lenf), buf);
 			BZ2_bzWrite(&bz2err, pfbz2, buf, 8);
 			if (bz2err != BZ_OK)
-				errx(1, "BZ2_bzWrite, bz2err = %d", bz2err);
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWrite, bz2err(%d)", bz2err);
 
 			offtout((pos-lenb)-(lastpos+lenf), buf);
 			BZ2_bzWrite(&bz2err, pfbz2, buf, 8);
 			if (bz2err != BZ_OK)
-				errx(1, "BZ2_bzWrite, bz2err = %d", bz2err);
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWrite, bz2err(%d)", bz2err);
 
 			lastscan = scan - lenb;
 			lastpos = pos - lenb;
@@ -416,52 +424,52 @@ int bsdiff(
 	};
 	BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL);
 	if (bz2err != BZ_OK)
-		errx(1, "BZ2_bzWriteClose, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteClose, bz2err(%d)", bz2err);
 
 	/* Compute size of compressed ctrl data */
 	if ((len = ftell(pf)) == -1)
-		err(1, "ftell");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "ftell");
 	offtout(len-32, header + 8);
 
 	/* Write compressed diff data */
 	if ((pfbz2 = BZ2_bzWriteOpen(&bz2err, pf, 9, 0, 0)) == NULL)
-		errx(1, "BZ2_bzWriteOpen, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteOpen, bz2err(%d)", bz2err);
 	BZ2_bzWrite(&bz2err, pfbz2, db, dblen);
 	if (bz2err != BZ_OK)
-		errx(1, "BZ2_bzWrite, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWrite, bz2err(%d)", bz2err);
 	BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL);
 	if (bz2err != BZ_OK)
-		errx(1, "BZ2_bzWriteClose, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteClose, bz2err(%d)", bz2err);
 
 	/* Compute size of compressed diff data */
 	if ((newsize = ftell(pf)) == -1)
-		err(1, "ftell");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "ftell");
 	offtout(newsize - len, header + 16);
 
 	/* Write compressed extra data */
 	if ((pfbz2 = BZ2_bzWriteOpen(&bz2err, pf, 9, 0, 0)) == NULL)
-		errx(1, "BZ2_bzWriteOpen, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteOpen, bz2err(%d)", bz2err);
 	BZ2_bzWrite(&bz2err, pfbz2, eb, eblen);
 	if (bz2err != BZ_OK)
-		errx(1, "BZ2_bzWrite, bz2err = %d", bz2err);
-	BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL);
-	if (bz2err != BZ_OK)
-		errx(1, "BZ2_bzWriteClose, bz2err = %d", bz2err);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWrite, bz2err(%d)", bz2err);
 
 	/* Seek to the beginning, write the header, and close the file */
 	if (fseek(pf, 0, SEEK_SET))
-		err(1, "fseek");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek");
 	if (fwrite(header, 32, 1, pf) != 1)
-		err(1, "fwrite(%s)", patchfile);
-	if (fclose(pf))
-		err(1, "fclose");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fwrite(%s)", patchfile);
 
-	/* Free the memory we used */
-	free(db);
-	free(eb);
-	free(I);
-	free(old);
-	free(new);
+	ret = BSDIFF_SUCCESS;
 
-	return 0;
+cleanup:
+	if (pfbz2 != NULL) { BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL); }
+	if (f != NULL) { fclose(f); }
+	if (pf != NULL) { fclose(pf); }
+	if (db != NULL) { free(db); }
+	if (eb != NULL) { free(eb); }
+	if (I != NULL) { free(I); }
+	if (old != NULL) { free(old); }
+	if (new != NULL) { free(new); }
+
+	return ret;
 }

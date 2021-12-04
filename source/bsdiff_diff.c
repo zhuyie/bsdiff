@@ -30,8 +30,10 @@
 
 int main(int argc, char * argv[])
 {
-	if (argc != 4)
-		errx(1, "usage: %s oldfile newfile patchfile\n", argv[0]);
+	if (argc != 4) {
+		fprintf(stderr, "usage: %s oldfile newfile patchfile\n", argv[0]);
+		return 1;
+	}
 
 	return bsdiff(argv[1], argv[2], argv[3]);
 }
