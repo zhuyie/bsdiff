@@ -20,10 +20,10 @@ if (MSVC)
     target_compile_definitions(bsdiff PUBLIC "_CRT_SECURE_NO_WARNINGS")
 endif()
 
-add_executable(bsdiff_diff source/bsdiff_standalone.c)
+add_executable(bsdiff_diff source/bsdiff_diff.c)
 target_include_directories(bsdiff_diff PUBLIC "include")
 target_link_libraries(bsdiff_diff bsdiff)
 
-add_executable(bsdiff_patch source/bspatch_standalone.c)
+add_executable(bsdiff_patch source/bsdiff_patch.c)
 target_include_directories(bsdiff_patch PUBLIC "include")
 target_link_libraries(bsdiff_patch bsdiff)
