@@ -37,6 +37,11 @@ int bsdiff(
     const char *newfile, 
     const char *patchfile);
 
+int bspatch(
+    const char *oldfile, 
+    const char *patchfile, 
+    const char *newfile);
+
 #ifdef __cplusplus
 }
 #endif

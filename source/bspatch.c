@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "bspatch.h"
+#include "bsdiff.h"
 #include "common.h"
 
 static off_t offtin(u_char *buf)

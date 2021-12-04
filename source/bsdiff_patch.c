@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "bspatch.h"
+#include "bsdiff.h"
 #include "common.h"
 
 int main(int argc,char * argv[])
