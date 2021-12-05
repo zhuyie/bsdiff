@@ -250,7 +250,7 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", oldfile);
 	}
 	if ((old = malloc(oldsize + 1)) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "old");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(old)");
 	if (fread(old, 1, oldsize, f) != oldsize)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", oldfile);
 	fclose(f);
@@ -259,7 +259,7 @@ int bsdiff(
 	if (((I = malloc((oldsize + 1) * sizeof(off_t))) == NULL) ||
 		((V = malloc((oldsize + 1) * sizeof(off_t))) == NULL))
 	{
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "I/V");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(I/V)");
 	}
 
 	qsufsort(I, V, old, oldsize);
@@ -277,7 +277,7 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", newfile);
 	}
 	if ((new = malloc(newsize + 1)) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "new");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(new)");
 	if (fread(new, 1, newsize, f) != newsize)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", newfile);
 	fclose(f);
@@ -286,7 +286,7 @@ int bsdiff(
 	if (((db = malloc(newsize + 1)) == NULL) ||
 		((eb = malloc(newsize + 1)) == NULL))
 	{
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "db/eb");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(db/eb)");
 	}
 	dblen = 0;
 	eblen = 0;
@@ -425,11 +425,12 @@ int bsdiff(
 	BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL);
 	if (bz2err != BZ_OK)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteClose, bz2err(%d)", bz2err);
+	pfbz2 = NULL;
 
 	/* Compute size of compressed ctrl data */
 	if ((len = ftell(pf)) == -1)
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "ftell");
-	offtout(len-32, header + 8);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "ftell(%s)", patchfile);
+	offtout(len - 32, header + 8);
 
 	/* Write compressed diff data */
 	if ((pfbz2 = BZ2_bzWriteOpen(&bz2err, pf, 9, 0, 0)) == NULL)
@@ -440,10 +441,11 @@ int bsdiff(
 	BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL);
 	if (bz2err != BZ_OK)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteClose, bz2err(%d)", bz2err);
+	pfbz2 = NULL;
 
 	/* Compute size of compressed diff data */
 	if ((newsize = ftell(pf)) == -1)
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "ftell");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "ftell(%s)", patchfile);
 	offtout(newsize - len, header + 16);
 
 	/* Write compressed extra data */
@@ -452,10 +454,14 @@ int bsdiff(
 	BZ2_bzWrite(&bz2err, pfbz2, eb, eblen);
 	if (bz2err != BZ_OK)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWrite, bz2err(%d)", bz2err);
+	BZ2_bzWriteClose(&bz2err, pfbz2, 0, NULL, NULL);
+	if (bz2err != BZ_OK)
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzWriteClose, bz2err(%d)", bz2err);
+	pfbz2 = NULL;
 
 	/* Seek to the beginning, write the header, and close the file */
 	if (fseek(pf, 0, SEEK_SET))
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s)", patchfile);
 	if (fwrite(header, 32, 1, pf) != 1)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fwrite(%s)", patchfile);
 

@@ -86,21 +86,21 @@ int bspatch(
 	/* Read header */
 	if (fread(header, 1, 32, f) < 32) {
 		if (feof(f))
-			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "header");
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "header too short");
 		else
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", patchfile);
 	}
 
 	/* Check for appropriate magic */
 	if (memcmp(header, "BSDIFF40", 8) != 0)
-		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "header");
+		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "magic mismatch");
 
 	/* Read lengths from header */
 	bzctrllen = offtin(header + 8);
 	bzdatalen = offtin(header + 16);
 	newsize = offtin(header + 24);
 	if ((bzctrllen < 0) || (bzdatalen < 0) || (newsize < 0))
-		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "lengths");
+		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid lengths");
 
 	/* Close patch file and re-open it via libbzip2 at the right places */
 	fclose(f);
@@ -114,14 +114,13 @@ int bspatch(
 	if ((dpf = fopen(patchfile, "r")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(dpf, 32 + bzctrllen, SEEK_SET))
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)bzctrllen + 32);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)32 + bzctrllen);
 	if ((dpfbz2 = BZ2_bzReadOpen(&dbz2err, dpf, 0, 0, NULL, 0)) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(dpfbz2), bz2err(%d)", dbz2err);
 	if ((epf = fopen(patchfile, "r")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(epf, 32 + bzctrllen + bzdatalen, SEEK_SET))
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, 
-			(long long)bzctrllen + bzdatalen + 32);
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)32 + bzctrllen + bzdatalen);
 	if ((epfbz2 = BZ2_bzReadOpen(&ebz2err, epf, 0, 0, NULL, 0)) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(epfbz2), bz2err(%d)", ebz2err);
 
@@ -133,14 +132,14 @@ int bspatch(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s", oldfile);
 	}
 	if ((old = malloc(oldsize + 1)) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "old");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(old)");
 	if (fread(old, 1, oldsize, f) != oldsize)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fread(%s)", oldfile);
 	fclose(f);
 	f = NULL;
 
 	if ((new = malloc(newsize + 1)) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "new");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(new)");
 
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
@@ -150,7 +149,7 @@ int bspatch(
 			if ((lenread < 8) || ((cbz2err != BZ_OK) &&
 				(cbz2err != BZ_STREAM_END)))
 			{
-				HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "read control data");
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "read control data");
 			}
 			ctrl[i] = offtin(buf);
 		};
@@ -164,7 +163,7 @@ int bspatch(
 		if ((lenread < ctrl[0]) ||
 		    ((dbz2err != BZ_OK) && (dbz2err != BZ_STREAM_END)))
 		{
-			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "read diff string");
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read diff string");
 		}
 
 		/* Add old data to diff string */
@@ -186,7 +185,7 @@ int bspatch(
 		if ((lenread < ctrl[1]) ||
 			((ebz2err != BZ_OK) && (ebz2err != BZ_STREAM_END)))
 		{
-			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "read extra string");
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read extra string");
 		}
 
 		/* Adjust pointers */
