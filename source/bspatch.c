@@ -147,8 +147,8 @@ int bspatch(
 		/* Read control data */
 		for (i = 0; i <= 2; i++) {
 			lenread = BZ2_bzRead(&cbz2err, cpfbz2, buf, 8);
-			if ((lenread < 8) || ((cbz2err != BZ_OK) &&
-				(cbz2err != BZ_STREAM_END)))
+			if ((lenread < 8) ||
+				((cbz2err != BZ_OK) && (cbz2err != BZ_STREAM_END)))
 			{
 				HANDLE_ERROR(BSDIFF_FILE_ERROR, "read control data");
 			}

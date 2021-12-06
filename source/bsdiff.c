@@ -306,6 +306,7 @@ int bsdiff(
 		32	??	Bzip2ed ctrl block
 		??	??	Bzip2ed diff block
 		??	??	Bzip2ed extra block */
+	memset(header, 0, 32);              /* Fix MSVC warning C6385 */
 	memcpy(header, "BSDIFF40", 8);
 	offtout(0, header + 8);
 	offtout(0, header + 16);
