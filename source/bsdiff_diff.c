@@ -28,12 +28,21 @@
 #include "bsdiff.h"
 #include "common.h"
 
+static void log_error(void *opaque, const char *errmsg)
+{
+	(void)opaque;
+	fprintf(stderr, "%s", errmsg);
+}
+
 int main(int argc, char * argv[])
 {
+	struct bsdiff_ctx ctx = { 0 };
+	ctx.log_error = log_error;
+
 	if (argc != 4) {
 		fprintf(stderr, "usage: %s oldfile newfile patchfile\n", argv[0]);
 		return 1;
 	}
 
-	return bsdiff(argv[1], argv[2], argv[3]);
+	return bsdiff(&ctx, argv[1], argv[2], argv[3]);
 }

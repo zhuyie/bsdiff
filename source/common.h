@@ -16,11 +16,12 @@ typedef SSIZE_T ssize_t;
 
 #define HANDLE_ERROR(errcode, fmt, ...) \
   do { \
-    fprintf(stderr, "ERROR(%d): ", errcode); \
-    fprintf(stderr, fmt, ##__VA_ARGS__); \
-    fprintf(stderr, "\n"); \
+    __bsdiff_log_error(ctx, errcode, fmt, ##__VA_ARGS__); \
     ret = errcode; \
     goto cleanup; \
   } while (0)
+
+struct bsdiff_ctx;
+void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...);
 
 #endif // !__BSDIFF_COMMON_H__

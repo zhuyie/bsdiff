@@ -39,12 +39,20 @@ extern "C" {
 #define BSDIFF_FILE_ERROR 3             /* file related errors */
 #define BSDIFF_CORRUPT_PATCH 4          /* corrupt patch data */
 
+struct bsdiff_ctx
+{
+    void *opaque;
+    void (*log_error)(void *opaque, const char *errmsg);
+};
+
 int bsdiff(
+    struct bsdiff_ctx *ctx,
     const char *oldfile, 
     const char *newfile, 
     const char *patchfile);
 
 int bspatch(
+    struct bsdiff_ctx *ctx,
     const char *oldfile, 
     const char *patchfile, 
     const char *newfile);

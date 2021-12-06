@@ -4,6 +4,7 @@ project(bsdiff)
 
 add_library(bsdiff
     source/common.h
+    source/common.c
     source/bsdiff.c
     source/bspatch.c
     3rdparty/bzip2/bzlib.c

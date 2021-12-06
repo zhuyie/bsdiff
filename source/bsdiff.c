@@ -218,6 +218,7 @@ static void offtout(off_t x, u_char *buf)
 }
 
 int bsdiff(
+	struct bsdiff_ctx *ctx,
 	const char *oldfile, 
 	const char *newfile, 
 	const char *patchfile)

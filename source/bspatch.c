@@ -48,6 +48,7 @@ static off_t offtin(u_char *buf)
 }
 
 int bspatch(
+	struct bsdiff_ctx *ctx,
 	const char *oldfile, 
 	const char *patchfile, 
 	const char *newfile)
