@@ -243,7 +243,7 @@ int bsdiff(
 
 	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if (((f = fopen(oldfile, "r")) == NULL) ||
+	if (((f = fopen(oldfile, "rb")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((oldsize = ftell(f)) == -1) ||
 		(fseek(f, 0, SEEK_SET) != 0))
@@ -270,7 +270,7 @@ int bsdiff(
 
 	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if (((f = fopen(newfile, "r")) == NULL) ||
+	if (((f = fopen(newfile, "rb")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((newsize = ftell(f)) == -1) ||
 		(fseek(f, 0, SEEK_SET) != 0))
@@ -293,7 +293,7 @@ int bsdiff(
 	eblen = 0;
 
 	/* Create the patch file */
-	if ((pf = fopen(patchfile, "w")) == NULL)
+	if ((pf = fopen(patchfile, "wb")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 
 	/* Header is

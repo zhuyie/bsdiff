@@ -67,7 +67,7 @@ int bspatch(
 	off_t i;
 
 	/* Open patch file */
-	if ((f = fopen(patchfile, "r")) == NULL)
+	if ((f = fopen(patchfile, "rb")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 
 	/*
@@ -106,26 +106,26 @@ int bspatch(
 	/* Close patch file and re-open it via libbzip2 at the right places */
 	fclose(f);
 	f = NULL;
-	if ((cpf = fopen(patchfile, "r")) == NULL)
+	if ((cpf = fopen(patchfile, "rb")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(cpf, 32, SEEK_SET))
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)32);
 	if ((cpfbz2 = BZ2_bzReadOpen(&cbz2err, cpf, 0, 0, NULL, 0)) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(cpfbz2), bz2err(%d)", cbz2err);
-	if ((dpf = fopen(patchfile, "r")) == NULL)
+	if ((dpf = fopen(patchfile, "rb")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(dpf, 32 + bzctrllen, SEEK_SET))
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)32 + bzctrllen);
 	if ((dpfbz2 = BZ2_bzReadOpen(&dbz2err, dpf, 0, 0, NULL, 0)) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(dpfbz2), bz2err(%d)", dbz2err);
-	if ((epf = fopen(patchfile, "r")) == NULL)
+	if ((epf = fopen(patchfile, "rb")) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", patchfile);
 	if (fseek(epf, 32 + bzctrllen + bzdatalen, SEEK_SET))
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fseek(%s, %lld)", patchfile, (long long)32 + bzctrllen + bzdatalen);
 	if ((epfbz2 = BZ2_bzReadOpen(&ebz2err, epf, 0, 0, NULL, 0)) == NULL)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "BZ2_bzReadOpen(epfbz2), bz2err(%d)", ebz2err);
 
-	if (((f = fopen(oldfile, "r")) == NULL) ||
+	if (((f = fopen(oldfile, "rb")) == NULL) ||
 		(fseek(f, 0, SEEK_END) != 0) ||
 		((oldsize = ftell(f)) == -1) ||
 		(fseek(f, 0, SEEK_SET) != 0))
@@ -195,7 +195,7 @@ int bspatch(
 	};
 
 	/* Write the new file */
-	if (((f = fopen(newfile, "w")) == NULL) ||
+	if (((f = fopen(newfile, "wb")) == NULL) ||
 		(fwrite(new, 1, newsize, f) != newsize))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "fopen(%s)", newfile);
