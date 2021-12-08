@@ -25,16 +25,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <bzlib.h>
 
 #include "bsdiff.h"
 #include "misc.h"
 
-static off_t offtin(u_char *buf)
+static off_t offtin(uint8_t *buf)
 {
 	off_t y;
 
@@ -65,8 +65,8 @@ int bspatch(
 	int cbz2err, dbz2err, ebz2err;
 	ssize_t oldsize, newsize;
 	ssize_t bzctrllen, bzdatalen;
-	u_char header[32], buf[8];
-	u_char *old = NULL, *new = NULL;
+	uint8_t header[32], buf[8];
+	uint8_t *old = NULL, *new = NULL;
 	off_t oldpos, newpos;
 	off_t ctrl[3];
 	off_t lenread;
