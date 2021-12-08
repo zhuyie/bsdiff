@@ -25,8 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdio.h>
 #include "bsdiff.h"
-#include "common.h"
 
 static void log_error(void *opaque, const char *errmsg)
 {

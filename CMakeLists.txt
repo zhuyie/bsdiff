@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.10)
 project(bsdiff)
 
 add_library(bsdiff
-    source/common.h
-    source/common.c
+    source/misc.h
+    source/misc.c
     source/bsdiff.c
     source/bspatch.c
     3rdparty/bzip2/bzlib.c

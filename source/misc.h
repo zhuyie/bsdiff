@@ -1,11 +1,5 @@
-#ifndef __BSDIFF_COMMON_H__
-#define __BSDIFF_COMMON_H__
-
-#include <sys/types.h>
-#include <bzlib.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#ifndef __BSDIFF_MISC_H__
+#define __BSDIFF_MISC_H__
 
 #if defined(_MSC_VER)
 
@@ -24,4 +18,4 @@ typedef SSIZE_T ssize_t;
 struct bsdiff_ctx;
 void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...);
 
-#endif // !__BSDIFF_COMMON_H__
+#endif // !__BSDIFF_MISC_H__

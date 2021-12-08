@@ -25,8 +25,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <bzlib.h>
+
 #include "bsdiff.h"
-#include "common.h"
+#include "misc.h"
 
 static off_t offtin(u_char *buf)
 {

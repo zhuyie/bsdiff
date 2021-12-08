@@ -1,6 +1,7 @@
-#include "bsdiff.h"
-#include "common.h"
+#include <stdio.h>
 #include <stdarg.h>
+#include "misc.h"
+#include "bsdiff.h"
 
 void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...)
 {
