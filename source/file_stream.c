@@ -7,7 +7,8 @@ static int bsdiff_stream_file_seek(void *state, int64_t offset, int origin)
 	int n;
 	FILE *f = (FILE*)state;
 #if defined(_MSC_VER)
-	// todo
+	n = _fseeki64(f, offset, origin);
+	return (n != 0) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
 #else
 	n = fseek(f, offset, origin);
 	return (n != 0) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
@@ -18,7 +19,8 @@ static int bsdiff_stream_file_tell(void *state, int64_t *position)
 {
 	FILE *f = (FILE*)state;
 #if defined(_MSC_VER)
-	// todo
+	*position = _ftelli64(f);
+    return (*position == -1) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
 #else
 	*position = ftell(f);
 	return (*position == -1) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
