@@ -148,7 +148,7 @@ int bspatch(
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(old)");
-	if ((oldfile->read(oldfile->state, old, oldsize, &cb) != BSDIFF_SUCCESS) ||
+	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
 		(cb != oldsize))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
@@ -201,7 +201,7 @@ int bspatch(
 	};
 
 	/* Write the new file */
-	if ((newfile->write(newfile->state, new, newsize, &cb) != BSDIFF_SUCCESS) ||
+	if ((newfile->write(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS) ||
 		(newfile->flush(newfile->state) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "write newfile");

@@ -32,9 +32,10 @@ static int substream_tell(void *state, int64_t *position)
 
 static int substream_read(void *state, void *buffer, size_t size, size_t *readed)
 {
-	int ret, cb;
+	int ret;
 	struct substream_state *substream = (struct substream_state*)state;
 	struct bsdiff_stream *base = substream->base;
+	size_t cb;
 
 	if (size == 0)
 		return BSDIFF_INVALID_ARG;
@@ -43,7 +44,7 @@ static int substream_read(void *state, void *buffer, size_t size, size_t *readed
 	/* calculate the number of bytes to read */
 	cb = size;
 	if (substream->current + size > substream->end)
-		cb = substream->end - substream->current;
+		cb = (size_t)(substream->end - substream->current);
 	/* (re)seek to current */
 	if (base->seek(base->state, substream->current, SEEK_SET) != BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
