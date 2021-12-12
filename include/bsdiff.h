@@ -28,6 +28,9 @@
 #ifndef __BSDIFF_BSDIFF_H__
 #define __BSDIFF_BSDIFF_H__
 
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,30 +38,63 @@ extern "C" {
 /* return codes */
 #define BSDIFF_SUCCESS 0
 #define BSDIFF_ERROR 1                  /* generic error */
-#define BSDIFF_OUT_OF_MEMORY 2          /* out of memory */
-#define BSDIFF_FILE_ERROR 3             /* file related errors */
-#define BSDIFF_CORRUPT_PATCH 4          /* corrupt patch data */
+#define BSDIFF_INVALID_ARG 2            /* invalid argument */
+#define BSDIFF_OUT_OF_MEMORY 3          /* out of memory */
+#define BSDIFF_FILE_ERROR 4             /* file related errors */
+#define BSDIFF_END_OF_FILE 5            /* end of file */
+#define BSDIFF_CORRUPT_PATCH 6          /* corrupt patch data */
+#define BSDIFF_SIZE_TOO_LARGE 7         /* size is too large */
 
+/* bsdiff_stream */
+struct bsdiff_stream
+{
+	void *state;
+	int (*seek)(void *state, int64_t offset, int origin);
+	int (*tell)(void *state, int64_t *position);
+	int (*read)(void *state, void *buffer, size_t size, size_t *readed);
+	int (*write)(void *state, const void *buffer, size_t size, size_t *written);
+	int (*flush)(void *state);
+	void (*close)(void *state);
+};
+
+int bsdiff_open_file_stream(
+	const char *filename, 
+	int write,
+	struct bsdiff_stream *stream);
+
+/* bsdiff_decompressor */
+struct bsdiff_decompressor
+{
+	void *state;
+	int (*init)(void *state, struct bsdiff_stream *stream);
+	int (*read)(void *state, void *buffer, size_t size, size_t *readed);
+	void (*close)(void *state);
+};
+
+int bsdiff_create_bz2_decompressor(
+	struct bsdiff_decompressor *dec);
+
+/* bsdiff_ctx */
 struct bsdiff_ctx
 {
-    void *opaque;
-    void (*log_error)(void *opaque, const char *errmsg);
+	void *opaque;
+	void (*log_error)(void *opaque, const char *errmsg);
 };
 
 int bsdiff(
-    struct bsdiff_ctx *ctx,
-    const char *oldfile, 
-    const char *newfile, 
-    const char *patchfile);
+	struct bsdiff_ctx *ctx,
+	const char *oldfile, 
+	const char *newfile, 
+	const char *patchfile);
 
 int bspatch(
-    struct bsdiff_ctx *ctx,
-    const char *oldfile, 
-    const char *patchfile, 
-    const char *newfile);
+	struct bsdiff_ctx *ctx,
+	struct bsdiff_stream *oldfile, 
+	struct bsdiff_stream *patchfile, 
+	struct bsdiff_stream *newfile);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // !__BSDIFF_BSDIFF_H__
+#endif /* !__BSDIFF_BSDIFF_H__ */

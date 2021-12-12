@@ -5,6 +5,10 @@ project(bsdiff)
 add_library(bsdiff
     source/misc.h
     source/misc.c
+    source/file_stream.c
+    source/sub_stream.h
+    source/sub_stream.c
+    source/bz2_decompress.c
     source/bsdiff.c
     source/bspatch.c
     3rdparty/bzip2/bzlib.c

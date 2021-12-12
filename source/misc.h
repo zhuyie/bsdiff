@@ -18,4 +18,4 @@ typedef SSIZE_T ssize_t;
 struct bsdiff_ctx;
 void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...);
 
-#endif // !__BSDIFF_MISC_H__
+#endif /* !__BSDIFF_MISC_H__ */
