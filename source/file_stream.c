@@ -20,7 +20,7 @@ static int bsdiff_stream_file_tell(void *state, int64_t *position)
 	FILE *f = (FILE*)state;
 #if defined(_MSC_VER)
 	*position = _ftelli64(f);
-    return (*position == -1) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
+	return (*position == -1) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
 #else
 	*position = ftell(f);
 	return (*position == -1) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
@@ -30,9 +30,17 @@ static int bsdiff_stream_file_tell(void *state, int64_t *position)
 static int bsdiff_stream_file_read(void *state, void *buffer, size_t size, size_t *readed)
 {
 	FILE *f = (FILE*)state;
+	
+	*readed = 0;
+
+	/* The ANSI standard requires a return value of 0 for a size of 0. */
+	if (size == 0)
+		return BSDIFF_SUCCESS;
+
 	*readed = fread(buffer, 1, size, f);
 	if (*readed < size)
 		return feof(f) ? BSDIFF_END_OF_FILE : BSDIFF_FILE_ERROR;
+
 	return BSDIFF_SUCCESS;
 }
 

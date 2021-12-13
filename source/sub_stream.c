@@ -37,10 +37,13 @@ static int substream_read(void *state, void *buffer, size_t size, size_t *readed
 	struct bsdiff_stream *base = substream->base;
 	size_t cb;
 
+	*readed = 0;
+	
 	if (size == 0)
-		return BSDIFF_INVALID_ARG;
+		return BSDIFF_SUCCESS;
 	if (substream->current == substream->end)
 		return BSDIFF_END_OF_FILE;
+
 	/* calculate the number of bytes to read */
 	cb = size;
 	if (substream->current + size > substream->end)
