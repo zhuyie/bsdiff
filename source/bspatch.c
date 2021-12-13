@@ -67,7 +67,7 @@ int bspatch(
 	size_t cb;
 	int64_t oldsize, newsize;
 	ssize_t bzctrllen, bzdatalen;
-	uint8_t header[32], buf[8];
+	uint8_t header[32], buf[24];
 	uint8_t *old = NULL, *new = NULL;
 	off_t oldpos, newpos;
 	off_t ctrl[3];
@@ -162,12 +162,10 @@ int bspatch(
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
 		/* Read control data */
-		for (i = 0; i <= 2; i++) {
-			if (cpfbz2.read(cpfbz2.state, buf, 8, &cb) != BSDIFF_SUCCESS) {
-				HANDLE_ERROR(BSDIFF_FILE_ERROR, "read control data");
-			}
-			ctrl[i] = offtin(buf);
-		};
+		if (cpfbz2.read(cpfbz2.state, buf, 24, &cb) != BSDIFF_SUCCESS)
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read control data");
+		for (i = 0; i <= 2; i++)
+			ctrl[i] = offtin(buf + i * 8);
 
 		/* Sanity-check */
 		if (newpos + ctrl[0] > newsize)
