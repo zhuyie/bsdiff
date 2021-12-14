@@ -66,7 +66,7 @@ int bspatch(
 	int64_t read_start, read_end;
 	size_t cb;
 	int64_t oldsize, newsize;
-	ssize_t bzctrllen, bzdatalen;
+	int64_t bzctrllen, bzdatalen;
 	uint8_t header[32], buf[24];
 	uint8_t *old = NULL, *new = NULL;
 	off_t oldpos, newpos;
@@ -89,9 +89,7 @@ int bspatch(
 
 	/* Read header */
 	ret = patchfile->read(patchfile->state, header, 32, &cb);
-	if (ret == BSDIFF_END_OF_FILE)
-		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "header too short");
-	else if (ret != BSDIFF_SUCCESS)
+	if (ret != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read patchfile");
 
 	/* Check for appropriate magic */
@@ -147,17 +145,14 @@ int bspatch(
 	if (oldsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(old)");
-	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
-		(cb != oldsize))
-	{
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
+	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
-	}
 
 	if (newsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the newfile is too large");
 	if ((new = malloc((size_t)(newsize + 1))) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc(new)");
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
 
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
@@ -199,7 +194,7 @@ int bspatch(
 	};
 
 	/* Write the new file */
-	if ((newfile->write(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS) ||
+	if ((newfile->write(newfile->state, new, (size_t)newsize) != BSDIFF_SUCCESS) ||
 		(newfile->flush(newfile->state) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "write newfile");

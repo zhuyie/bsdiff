@@ -44,11 +44,11 @@ static int bsdiff_stream_file_read(void *state, void *buffer, size_t size, size_
 	return BSDIFF_SUCCESS;
 }
 
-static int bsdiff_stream_file_write(void *state, const void *buffer, size_t size, size_t *written)
+static int bsdiff_stream_file_write(void *state, const void *buffer, size_t size)
 {
 	FILE *f = (FILE*)state;
-	*written = fwrite(buffer, 1, size, f);
-	return (*written < size) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
+	size_t n = fwrite(buffer, 1, size, f);
+	return (n < size) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
 }
 
 static int bsdiff_stream_file_flush(void *state)

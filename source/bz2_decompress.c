@@ -8,8 +8,8 @@ struct bz2_decompressor
 	int initialized;
 	struct bsdiff_stream *strm;
 	bz_stream bzstrm;
-	uint8_t buf[5000];
 	int bzerr;
+	char buf[5000];
 };
 
 static int bz2_decompressor_init(void *state, struct bsdiff_stream *stream)
@@ -28,7 +28,9 @@ static int bz2_decompressor_init(void *state, struct bsdiff_stream *stream)
 		return BSDIFF_ERROR;
 	dec->bzstrm.avail_in = 0;
 	dec->bzstrm.next_in = NULL;
-
+	dec->bzstrm.avail_out = 0;
+	dec->bzstrm.next_out = NULL;
+	
 	dec->bzerr = BZ_OK;
 
 	dec->initialized = 1;
@@ -38,12 +40,11 @@ static int bz2_decompressor_init(void *state, struct bsdiff_stream *stream)
 
 static int bz2_decompressor_read(void *state, void *buffer, size_t size, size_t *readed)
 {
-	struct bz2_decompressor *dec;
+	struct bz2_decompressor *dec = (struct bz2_decompressor*)state;
 	int ret;
 	size_t cb;
 	unsigned int old_avail_out;
-
-	dec = (struct bz2_decompressor*)state;
+	
 	if (!dec->initialized)
 		return BSDIFF_ERROR;
 	if (dec->bzerr != BZ_OK)
@@ -56,36 +57,33 @@ static int bz2_decompressor_read(void *state, void *buffer, size_t size, size_t 
 	}
 
 	dec->bzstrm.avail_out = (unsigned int)size;
-	dec->bzstrm.next_out = buffer;
+	dec->bzstrm.next_out = (char*)buffer;
 
 	while (1) {
+		/* input buffer is empty */
 		if (dec->bzstrm.avail_in == 0) {
 			ret = dec->strm->read(dec->strm->state, dec->buf, sizeof(dec->buf), &cb);
-			if (ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) {
+			if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb == 0))
 				return BSDIFF_ERROR;
-			}
-			if (cb == 0) {
-				return BSDIFF_ERROR;
-			}
-
-			dec->bzstrm.next_in = (char*)(dec->buf);
+			dec->bzstrm.next_in = dec->buf;
 			dec->bzstrm.avail_in = (unsigned int)cb;
 		}
 
 		old_avail_out = dec->bzstrm.avail_out;
+		/* decompress some amount of data */
 		dec->bzerr = BZ2_bzDecompress(&(dec->bzstrm));
-		if (dec->bzerr != BZ_OK && dec->bzerr != BZ_STREAM_END) {
+		if (dec->bzerr != BZ_OK && dec->bzerr != BZ_STREAM_END)
 			return BSDIFF_ERROR;
-		}
 
+		/* update readed */
 		*readed += old_avail_out - dec->bzstrm.avail_out;
 
-		if (dec->bzerr == BZ_STREAM_END) {
+		/* the end of compressed stream was detected */
+		if (dec->bzerr == BZ_STREAM_END)
 			return BSDIFF_SUCCESS;
-		}
-		if (dec->bzstrm.avail_out == 0) {
+		/* all output buffer has been consumed */
+		if (dec->bzstrm.avail_out == 0)
 			return BSDIFF_SUCCESS;
-		}
 	}
 
 	/* never reached */

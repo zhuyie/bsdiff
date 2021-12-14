@@ -36,13 +36,38 @@ static void log_error(void *opaque, const char *errmsg)
 
 int main(int argc, char * argv[])
 {
+	int ret = 1;
+	struct bsdiff_stream oldfile = { 0 }, newfile = { 0 }, patchfile = { 0 };
 	struct bsdiff_ctx ctx = { 0 };
-	ctx.log_error = log_error;
 
 	if (argc != 4) {
 		fprintf(stderr, "usage: %s oldfile newfile patchfile\n", argv[0]);
 		return 1;
 	}
 
-	return bsdiff(&ctx, argv[1], argv[2], argv[3]);
+	if ((ret = bsdiff_open_file_stream(argv[1], 0, &oldfile)) != BSDIFF_SUCCESS) {
+		fprintf(stderr, "can't open oldfile(%s)\n", argv[1]);
+		goto cleanup;
+	}
+	if ((ret = bsdiff_open_file_stream(argv[2], 0, &newfile)) != BSDIFF_SUCCESS) {
+		fprintf(stderr, "can't open newfile(%s)\n", argv[2]);
+		goto cleanup;
+	}
+	if ((ret = bsdiff_open_file_stream(argv[3], 1, &patchfile)) != BSDIFF_SUCCESS) {
+		fprintf(stderr, "can't open patchfile(%s)\n", argv[3]);
+		goto cleanup;
+	}
+
+	ctx.log_error = log_error;
+	if ((ret = bsdiff(&ctx, &oldfile, &newfile, &patchfile)) != BSDIFF_SUCCESS) {
+		fprintf(stderr, "bsdiff failed: %d\n", ret);
+		goto cleanup;
+	}
+
+cleanup:
+	if (patchfile.close) { patchfile.close(patchfile.state); }
+	if (newfile.close) { newfile.close(newfile.state); }
+	if (oldfile.close) { oldfile.close(oldfile.state); }
+
+	return ret;
 }

@@ -52,7 +52,7 @@ struct bsdiff_stream
 	int (*seek)(void *state, int64_t offset, int origin);
 	int (*tell)(void *state, int64_t *position);
 	int (*read)(void *state, void *buffer, size_t size, size_t *readed);
-	int (*write)(void *state, const void *buffer, size_t size, size_t *written);
+	int (*write)(void *state, const void *buffer, size_t size);
 	int (*flush)(void *state);
 	void (*close)(void *state);
 };
@@ -61,6 +61,19 @@ int bsdiff_open_file_stream(
 	const char *filename, 
 	int write,
 	struct bsdiff_stream *stream);
+
+/* bsdiff_compressor */
+struct bsdiff_compressor
+{
+	void *state;
+	int (*init)(void *state, struct bsdiff_stream *stream);
+	int (*write)(void *state, const void *buffer, size_t size);
+	int (*flush)(void *state);
+	void (*close)(void *state);
+};
+
+int bsdiff_create_bz2_compressor(
+	struct bsdiff_compressor *enc);
 
 /* bsdiff_decompressor */
 struct bsdiff_decompressor
@@ -83,9 +96,9 @@ struct bsdiff_ctx
 
 int bsdiff(
 	struct bsdiff_ctx *ctx,
-	const char *oldfile, 
-	const char *newfile, 
-	const char *patchfile);
+	struct bsdiff_stream *oldfile, 
+	struct bsdiff_stream *newfile, 
+	struct bsdiff_stream *patchfile);
 
 int bspatch(
 	struct bsdiff_ctx *ctx,
