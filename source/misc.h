@@ -1,13 +1,6 @@
 #ifndef __BSDIFF_MISC_H__
 #define __BSDIFF_MISC_H__
 
-#if defined(_MSC_VER)
-
-#include <basetsd.h>
-typedef SSIZE_T ssize_t;
-
-#endif
-
 #define HANDLE_ERROR(errcode, fmt, ...) \
   do { \
     __bsdiff_log_error(ctx, errcode, fmt, ##__VA_ARGS__); \
