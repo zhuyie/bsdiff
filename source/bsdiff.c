@@ -211,14 +211,14 @@ static void offtout(off_t x, uint8_t *buf)
 	else
 		y = x;
 
-		       buf[0] = y%256; y -= buf[0];
-	y = y/256; buf[1] = y%256; y -= buf[1];
-	y = y/256; buf[2] = y%256; y -= buf[2];
-	y = y/256; buf[3] = y%256; y -= buf[3];
-	y = y/256; buf[4] = y%256; y -= buf[4];
-	y = y/256; buf[5] = y%256; y -= buf[5];
-	y = y/256; buf[6] = y%256; y -= buf[6];
-	y = y/256; buf[7] = y%256;
+				 buf[0] = y % 256; y -= buf[0];
+	y = y / 256; buf[1] = y % 256; y -= buf[1];
+	y = y / 256; buf[2] = y % 256; y -= buf[2];
+	y = y / 256; buf[3] = y % 256; y -= buf[3];
+	y = y / 256; buf[4] = y % 256; y -= buf[4];
+	y = y / 256; buf[5] = y % 256; y -= buf[5];
+	y = y / 256; buf[6] = y % 256; y -= buf[6];
+	y = y / 256; buf[7] = y % 256;
 
 	if (x < 0)
 		buf[7] |= 0x80;
@@ -254,18 +254,16 @@ int bsdiff(
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "get the size of oldfile");
 	}
-	if (oldsize >= SIZE_MAX)
+	if ((oldsize >= SIZE_MAX) || ((oldsize + 1) * sizeof(off_t) >= SIZE_MAX))
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
-	if ((old = malloc(oldsize + 1)) == NULL)
+	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
 	if (oldfile->read(oldfile->state, old, oldsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
 
-	if (((I = malloc((oldsize + 1) * sizeof(off_t))) == NULL) ||
-		((V = malloc((oldsize + 1) * sizeof(off_t))) == NULL))
-	{
+	cb = (size_t)((oldsize + 1) * sizeof(off_t));
+	if (((I = malloc(cb)) == NULL) || ((V = malloc(cb)) == NULL))
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for I && V");
-	}
 
 	qsufsort(I, V, old, oldsize);
 
@@ -282,13 +280,13 @@ int bsdiff(
 	}
 	if (newsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the newfile is too large");
-	if ((new = malloc(newsize + 1)) == NULL)
+	if ((new = malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
 	if (newfile->read(newfile->state, new, newsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read newfile");
 
-	if (((db = malloc(newsize + 1)) == NULL) ||
-		((eb = malloc(newsize + 1)) == NULL))
+	if (((db = malloc((size_t)(newsize + 1))) == NULL) ||
+		((eb = malloc((size_t)(newsize + 1))) == NULL))
 	{
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for db && eb");
 	}
@@ -350,8 +348,8 @@ int bsdiff(
 		};
 
 		if ((len != oldscore) || (scan == newsize)) {
-			s=0; Sf=0; lenf=0;
-			for (i=0; (lastscan+i<scan)&&(lastpos+i<oldsize);) {
+			s = 0; Sf = 0; lenf = 0;
+			for (i = 0; (lastscan+i<scan) && (lastpos+i<oldsize);) {
 				if (old[lastpos+i] == new[lastscan+i])
 					s++;
 				i++;
@@ -363,8 +361,8 @@ int bsdiff(
 
 			lenb = 0;
 			if (scan < newsize) {
-				s=0; Sb=0;
-				for (i=1; (scan>=lastscan+i)&&(pos>=i); i++) {
+				s = 0; Sb = 0;
+				for (i = 1; (scan>=lastscan+i) && (pos>=i); i++) {
 					if (old[pos-i] == new[scan-i])
 						s++;
 					if (s*2-i > Sb*2-lenb) {
@@ -375,9 +373,9 @@ int bsdiff(
 			};
 
 			if (lastscan+lenf > scan-lenb) {
-				overlap = (lastscan+lenf)-(scan-lenb);
-				s=0; Ss=0; lens=0;
-				for (i=0; i<overlap; i++) {
+				overlap = (lastscan+lenf) - (scan-lenb);
+				s = 0; Ss = 0; lens = 0;
+				for (i = 0; i < overlap; i++) {
 					if (new[lastscan + lenf - overlap + i] ==
 						old[lastpos + lenf - overlap + i])
 					{
@@ -398,13 +396,13 @@ int bsdiff(
 				lenb -= lens;
 			};
 
-			for (i=0; i<lenf; i++)
+			for (i = 0; i < lenf; i++)
 				db[dblen+i] = new[lastscan+i]-old[lastpos+i];
-			for(i=0; i < (scan-lenb)-(lastscan+lenf); i++)
+			for(i = 0; i < (scan-lenb)-(lastscan+lenf); i++)
 				eb[eblen+i] = new[lastscan+lenf+i];
 
 			dblen += lenf;
-			eblen += (scan-lenb) - (lastscan+lenf);
+			eblen += (scan-lenb)-(lastscan+lenf);
 
 			offtout(lenf, buf);
 			offtout((scan-lenb)-(lastscan+lenf), buf + 8);
