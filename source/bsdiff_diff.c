@@ -65,9 +65,9 @@ int main(int argc, char * argv[])
 	}
 
 cleanup:
-	if (patchfile.close) { patchfile.close(patchfile.state); }
-	if (newfile.close) { newfile.close(newfile.state); }
-	if (oldfile.close) { oldfile.close(oldfile.state); }
+	bsdiff_close_stream(&patchfile);
+	bsdiff_close_stream(&newfile);
+	bsdiff_close_stream(&oldfile);
 
 	return ret;
 }

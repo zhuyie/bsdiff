@@ -243,7 +243,7 @@ int bsdiff(
 	off_t dblen, eblen;
 	uint8_t *db = NULL, *eb = NULL;
 	uint8_t header[32], buf[24];
-	struct bsdiff_compressor cpfbz2 = { 0 }, dpfbz2 = { 0 }, epfbz2 = { 0 };
+	struct bsdiff_compressor pfbz2 = { 0 };
 	size_t cb;
 
 	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
@@ -314,8 +314,8 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "write header");
 
 	/* Compute the differences, writing ctrl as we go */
-	if ((bsdiff_create_bz2_compressor(&cpfbz2) != BSDIFF_SUCCESS) ||
-		(cpfbz2.init(cpfbz2.state, patchfile) != BSDIFF_SUCCESS))
+	if ((bsdiff_create_bz2_compressor(&pfbz2) != BSDIFF_SUCCESS) ||
+		(pfbz2.init(pfbz2.state, patchfile) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_ERROR, "create compressor for control block");
 	}
@@ -409,7 +409,7 @@ int bsdiff(
 			offtout(lenf, buf);
 			offtout((scan-lenb)-(lastscan+lenf), buf + 8);
 			offtout((pos-lenb)-(lastpos+lenf), buf + 16);
-			if (cpfbz2.write(cpfbz2.state, buf, 24) != BSDIFF_SUCCESS)
+			if (pfbz2.write(pfbz2.state, buf, 24) != BSDIFF_SUCCESS)
 				HANDLE_ERROR(BSDIFF_ERROR, "write ctrl data");
 
 			lastscan = scan - lenb;
@@ -417,8 +417,9 @@ int bsdiff(
 			lastoffset = pos - scan;
 		};
 	};
-	if (cpfbz2.flush(cpfbz2.state) != BSDIFF_SUCCESS)
+	if (pfbz2.flush(pfbz2.state) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "flush ctrl data");
+	bsdiff_close_compressor(&pfbz2);
 
 	/* Compute size of compressed ctrl data */
 	if (patchfile->tell(patchfile->state, &patchsize) != BSDIFF_SUCCESS)
@@ -426,15 +427,16 @@ int bsdiff(
 	offtout(patchsize - 32, header + 8);
 
 	/* Write compressed diff data */
-	if ((bsdiff_create_bz2_compressor(&dpfbz2) != BSDIFF_SUCCESS) ||
-		(dpfbz2.init(dpfbz2.state, patchfile) != BSDIFF_SUCCESS))
+	if ((bsdiff_create_bz2_compressor(&pfbz2) != BSDIFF_SUCCESS) ||
+		(pfbz2.init(pfbz2.state, patchfile) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_ERROR, "create compressor for diff block");
 	}
-	if (dpfbz2.write(dpfbz2.state, db, dblen) != BSDIFF_SUCCESS)
+	if (pfbz2.write(pfbz2.state, db, dblen) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "write diff data");
-	if (dpfbz2.flush(dpfbz2.state) != BSDIFF_SUCCESS)
+	if (pfbz2.flush(pfbz2.state) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "flush diff data");
+	bsdiff_close_compressor(&pfbz2);
 
 	/* Compute size of compressed diff data */
 	if (patchfile->tell(patchfile->state, &patchsize2) != BSDIFF_SUCCESS)
@@ -442,15 +444,16 @@ int bsdiff(
 	offtout(patchsize2 - patchsize, header + 16);
 
 	/* Write compressed extra data */
-	if ((bsdiff_create_bz2_compressor(&epfbz2) != BSDIFF_SUCCESS) ||
-		(epfbz2.init(epfbz2.state, patchfile) != BSDIFF_SUCCESS))
+	if ((bsdiff_create_bz2_compressor(&pfbz2) != BSDIFF_SUCCESS) ||
+		(pfbz2.init(pfbz2.state, patchfile) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_ERROR, "create compressor for extra block");
 	}
-	if (epfbz2.write(epfbz2.state, db, dblen) != BSDIFF_SUCCESS)
+	if (pfbz2.write(pfbz2.state, db, dblen) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "write extra data");
-	if (epfbz2.flush(epfbz2.state) != BSDIFF_SUCCESS)
+	if (pfbz2.flush(pfbz2.state) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "flush extra data");
+	bsdiff_close_compressor(&pfbz2);
 
 	/* Seek to the beginning, (re)write the header */
 	if ((patchfile->seek(patchfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS) ||
@@ -463,9 +466,7 @@ int bsdiff(
 	ret = BSDIFF_SUCCESS;
 
 cleanup:
-	if (cpfbz2.close != NULL) { cpfbz2.close(cpfbz2.state); }
-	if (dpfbz2.close != NULL) { dpfbz2.close(dpfbz2.state); }
-	if (epfbz2.close != NULL) { epfbz2.close(epfbz2.state); }
+	bsdiff_close_compressor(&pfbz2);
 	if (db != NULL) { free(db); }
 	if (eb != NULL) { free(eb); }
 	if (I != NULL) { free(I); }

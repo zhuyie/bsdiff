@@ -203,12 +203,12 @@ int bspatch(
 	ret = BSDIFF_SUCCESS;
 
 cleanup:
-	if (cpfbz2.close != NULL) { cpfbz2.close(cpfbz2.state); }
-	if (dpfbz2.close != NULL) { dpfbz2.close(dpfbz2.state); }
-	if (epfbz2.close != NULL) { epfbz2.close(epfbz2.state); }
-	if (cpf.close != NULL) { cpf.close(cpf.state); }
-	if (dpf.close != NULL) { dpf.close(dpf.state); }
-	if (epf.close != NULL) { epf.close(epf.state); }
+	bsdiff_close_decompressor(&cpfbz2);
+	bsdiff_close_decompressor(&dpfbz2);
+	bsdiff_close_decompressor(&epfbz2);
+	bsdiff_close_stream(&cpf);
+	bsdiff_close_stream(&dpf);
+	bsdiff_close_stream(&epf);
 	if (new != NULL) { free(new); }
 	if (old != NULL) { free(old); }
 

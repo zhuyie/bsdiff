@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdarg.h>
 #include "misc.h"
 #include "bsdiff.h"
@@ -32,5 +33,32 @@ void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ..
 do_output:
 		buf[off] = '\n';
 		ctx->log_error(ctx->opaque, buf);
+	}
+}
+
+void bsdiff_close_stream(
+	struct bsdiff_stream *stream)
+{
+	if (stream->close != NULL) {
+		stream->close(stream->state);
+		memset(stream, 0, sizeof(*stream));
+	}
+}
+
+void bsdiff_close_compressor(
+	struct bsdiff_compressor *enc)
+{
+	if (enc->close != NULL) {
+		enc->close(enc->state);
+		memset(enc, 0, sizeof(*enc));
+	}
+}
+
+void bsdiff_close_decompressor(
+	struct bsdiff_decompressor *dec)
+{
+	if (dec->close != NULL) {
+		dec->close(dec->state);
+		memset(dec, 0, sizeof(*dec));
 	}
 }

@@ -62,6 +62,9 @@ int bsdiff_open_file_stream(
 	int write,
 	struct bsdiff_stream *stream);
 
+void bsdiff_close_stream(
+	struct bsdiff_stream *stream);
+
 /* bsdiff_compressor */
 struct bsdiff_compressor
 {
@@ -75,6 +78,9 @@ struct bsdiff_compressor
 int bsdiff_create_bz2_compressor(
 	struct bsdiff_compressor *enc);
 
+void bsdiff_close_compressor(
+	struct bsdiff_compressor *enc);
+
 /* bsdiff_decompressor */
 struct bsdiff_decompressor
 {
@@ -85,6 +91,9 @@ struct bsdiff_decompressor
 };
 
 int bsdiff_create_bz2_decompressor(
+	struct bsdiff_decompressor *dec);
+
+void bsdiff_close_decompressor(
 	struct bsdiff_decompressor *dec);
 
 /* bsdiff_ctx */
