@@ -37,9 +37,9 @@
 
 #define MIN(x,y) (((x)<(y)) ? (x) : (y))
 
-static void split(off_t *I, off_t *V, off_t start, off_t len, off_t h)
+static void split(int64_t *I, int64_t *V, int64_t start, int64_t len, int64_t h)
 {
-	off_t i, j, k, x, tmp, jj, kk;
+	int64_t i, j, k, x, tmp, jj, kk;
 
 	if (len < 16) {
 		for (k = start; k < start + len; k += j) {
@@ -115,10 +115,10 @@ static void split(off_t *I, off_t *V, off_t start, off_t len, off_t h)
 		split(I, V, kk, start+len-kk, h);
 }
 
-static void qsufsort(off_t *I, off_t *V, uint8_t *old, off_t oldsize)
+static void qsufsort(int64_t *I, int64_t *V, uint8_t *old, int64_t oldsize)
 {
-	off_t buckets[256];
-	off_t i,h,len;
+	int64_t buckets[256];
+	int64_t i,h,len;
 
 	for (i = 0; i < 256; i++)
 		buckets[i] = 0;
@@ -165,9 +165,9 @@ static void qsufsort(off_t *I, off_t *V, uint8_t *old, off_t oldsize)
 		I[V[i]] = i;
 }
 
-static off_t matchlen(uint8_t *old, off_t oldsize, uint8_t *new, off_t newsize)
+static int64_t matchlen(uint8_t *old, int64_t oldsize, uint8_t *new, int64_t newsize)
 {
-	off_t i;
+	int64_t i;
 
 	for (i = 0; (i < oldsize) && (i < newsize); i++) {
 		if (old[i] != new[i])
@@ -176,10 +176,10 @@ static off_t matchlen(uint8_t *old, off_t oldsize, uint8_t *new, off_t newsize)
 	return i;
 }
 
-static off_t search(off_t *I, uint8_t *old, off_t oldsize,
-		uint8_t *new, off_t newsize, off_t st, off_t en, off_t *pos)
+static int64_t search(int64_t *I, uint8_t *old, int64_t oldsize,
+		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos)
 {
-	off_t x, y;
+	int64_t x, y;
 
 	if (en-st < 2) {
 		x = matchlen(old+I[st], oldsize-I[st], new, newsize);
@@ -202,9 +202,9 @@ static off_t search(off_t *I, uint8_t *old, off_t oldsize,
 	};
 }
 
-static void offtout(off_t x, uint8_t *buf)
+static void offtout(int64_t x, uint8_t *buf)
 {
-	off_t y;
+	int64_t y;
 
 	if (x < 0)
 		y = -x; 
@@ -233,14 +233,14 @@ int bsdiff(
 	int ret;
 	uint8_t *old = NULL, *new = NULL;
 	int64_t oldsize, newsize, patchsize, patchsize2;
-	off_t *I = NULL, *V = NULL;
-	off_t scan, pos, len;
-	off_t lastscan, lastpos, lastoffset;
-	off_t oldscore, scsc;
-	off_t s, Sf, lenf, Sb, lenb;
-	off_t overlap, Ss, lens;
-	off_t i;
-	off_t dblen, eblen;
+	int64_t *I = NULL, *V = NULL;
+	int64_t scan, pos, len;
+	int64_t lastscan, lastpos, lastoffset;
+	int64_t oldscore, scsc;
+	int64_t s, Sf, lenf, Sb, lenb;
+	int64_t overlap, Ss, lens;
+	int64_t i;
+	int64_t dblen, eblen;
 	uint8_t *db = NULL, *eb = NULL;
 	uint8_t header[32], buf[24];
 	struct bsdiff_compressor pfbz2 = { 0 };
@@ -254,14 +254,14 @@ int bsdiff(
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "get the size of oldfile");
 	}
-	if ((oldsize >= SIZE_MAX) || ((oldsize + 1) * sizeof(off_t) >= SIZE_MAX))
+	if ((oldsize >= SIZE_MAX) || ((oldsize + 1) * sizeof(int64_t) >= SIZE_MAX))
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
 	if (oldfile->read(oldfile->state, old, oldsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
 
-	cb = (size_t)((oldsize + 1) * sizeof(off_t));
+	cb = (size_t)((oldsize + 1) * sizeof(int64_t));
 	if (((I = malloc(cb)) == NULL) || ((V = malloc(cb)) == NULL))
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for I && V");
 

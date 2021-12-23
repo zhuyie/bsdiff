@@ -35,9 +35,9 @@
 #include "misc.h"
 #include "sub_stream.h"
 
-static off_t offtin(uint8_t *buf)
+static int64_t offtin(uint8_t *buf)
 {
-	off_t y;
+	int64_t y;
 
 	y = buf[7] & 0x7F;
 	y = y * 256; y += buf[6];
@@ -69,9 +69,9 @@ int bspatch(
 	int64_t bzctrllen, bzdatalen;
 	uint8_t header[32], buf[24];
 	uint8_t *old = NULL, *new = NULL;
-	off_t oldpos, newpos;
-	off_t ctrl[3];
-	off_t i;
+	int64_t oldpos, newpos;
+	int64_t ctrl[3];
+	int64_t i;
 
 	/*
 	File format:
