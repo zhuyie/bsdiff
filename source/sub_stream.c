@@ -46,7 +46,7 @@ static int substream_read(void *state, void *buffer, size_t size, size_t *readed
 
 	/* calculate the number of bytes to read */
 	cb = size;
-	if (substream->current + size > substream->end)
+	if (substream->current + (int64_t)size > substream->end)
 		cb = (size_t)(substream->end - substream->current);
 	/* (re)seek to current */
 	if (base->seek(base->state, substream->current, SEEK_SET) != BSDIFF_SUCCESS)
