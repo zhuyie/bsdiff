@@ -35,6 +35,10 @@
 #include "misc.h"
 #include "sub_stream.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable:6011)  /* Dereferencing NULL pointer in 'cpfbz2.init' */
+#endif
+
 static int64_t offtin(uint8_t *buf)
 {
 	int64_t y;
@@ -167,7 +171,9 @@ int bspatch(
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
 		/* Read diff string */
-		if (dpfbz2.read(dpfbz2.state, new + newpos, ctrl[0], &cb) != BSDIFF_SUCCESS)
+		if (ctrl[0] >= SIZE_MAX)
+			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read diff string");
+		if (dpfbz2.read(dpfbz2.state, new + newpos, (size_t)ctrl[0], &cb) != BSDIFF_SUCCESS)
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read diff string");
 
 		/* Add old data to diff string */
@@ -185,7 +191,9 @@ int bspatch(
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
 		/* Read extra string */
-		if (epfbz2.read(epfbz2.state, new + newpos, ctrl[1], &cb) != BSDIFF_SUCCESS)
+		if (ctrl[1] >= SIZE_MAX)
+			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read extra string");
+		if (epfbz2.read(epfbz2.state, new + newpos, (size_t)ctrl[1], &cb) != BSDIFF_SUCCESS)
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read extra string");
 
 		/* Adjust pointers */

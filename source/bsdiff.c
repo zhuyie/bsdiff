@@ -35,6 +35,10 @@
 #include "bsdiff.h"
 #include "misc.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable:6011)  /* Dereferencing NULL pointer in 'pfbz2.init' */
+#endif
+
 #define MIN(x,y) (((x)<(y)) ? (x) : (y))
 
 static void split(int64_t *I, int64_t *V, int64_t start, int64_t len, int64_t h)
@@ -195,7 +199,7 @@ static int64_t search(int64_t *I, uint8_t *old, int64_t oldsize,
 	};
 
 	x = st+(en-st)/2;
-	if (memcmp(old+I[x], new, MIN(oldsize-I[x],newsize)) < 0) {
+	if (memcmp(old+I[x], new, (size_t)MIN(oldsize-I[x], newsize)) < 0) {
 		return search(I, old, oldsize, new, newsize, x, en, pos);
 	} else {
 		return search(I, old, oldsize, new, newsize, st, x, pos);
@@ -258,7 +262,7 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
-	if (oldfile->read(oldfile->state, old, oldsize, &cb) != BSDIFF_SUCCESS)
+	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
 
 	cb = (size_t)((oldsize + 1) * sizeof(int64_t));
@@ -282,7 +286,7 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the newfile is too large");
 	if ((new = malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
-	if (newfile->read(newfile->state, new, newsize, &cb) != BSDIFF_SUCCESS)
+	if (newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read newfile");
 
 	if (((db = malloc((size_t)(newsize + 1))) == NULL) ||
@@ -430,7 +434,7 @@ int bsdiff(
 	{
 		HANDLE_ERROR(BSDIFF_ERROR, "create compressor for diff block");
 	}
-	if (pfbz2.write(pfbz2.state, db, dblen) != BSDIFF_SUCCESS)
+	if (pfbz2.write(pfbz2.state, db, (size_t)dblen) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "write diff data");
 	if (pfbz2.flush(pfbz2.state) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "flush diff data");
@@ -447,7 +451,7 @@ int bsdiff(
 	{
 		HANDLE_ERROR(BSDIFF_ERROR, "create compressor for extra block");
 	}
-	if (pfbz2.write(pfbz2.state, db, dblen) != BSDIFF_SUCCESS)
+	if (pfbz2.write(pfbz2.state, db, (size_t)dblen) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "write extra data");
 	if (pfbz2.flush(pfbz2.state) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "flush extra data");
