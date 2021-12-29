@@ -167,6 +167,8 @@ int bspatch(
 			ctrl[i] = offtin(buf + i * 8);
 
 		/* Sanity-check */
+		if ((ctrl[0] < 0) || (ctrl[1] < 0))
+			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 		if (newpos + ctrl[0] > newsize)
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
