@@ -161,7 +161,8 @@ int bspatch(
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
 		/* Read control data */
-		if (cpfbz2.read(cpfbz2.state, buf, 24, &cb) != BSDIFF_SUCCESS)
+		ret = cpfbz2.read(cpfbz2.state, buf, 24, &cb);
+		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != 24))
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read control data");
 		for (i = 0; i <= 2; i++)
 			ctrl[i] = offtin(buf + i * 8);
@@ -175,7 +176,8 @@ int bspatch(
 		/* Read diff string */
 		if (ctrl[0] >= SIZE_MAX)
 			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read diff string");
-		if (dpfbz2.read(dpfbz2.state, new + newpos, (size_t)ctrl[0], &cb) != BSDIFF_SUCCESS)
+		ret = dpfbz2.read(dpfbz2.state, new + newpos, (size_t)ctrl[0], &cb);
+		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != (size_t)ctrl[0]))
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read diff string");
 
 		/* Add old data to diff string */
@@ -195,7 +197,8 @@ int bspatch(
 		/* Read extra string */
 		if (ctrl[1] >= SIZE_MAX)
 			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read extra string");
-		if (epfbz2.read(epfbz2.state, new + newpos, (size_t)ctrl[1], &cb) != BSDIFF_SUCCESS)
+		ret = epfbz2.read(epfbz2.state, new + newpos, (size_t)ctrl[1], &cb);
+		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != (size_t)ctrl[1]))
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read extra string");
 
 		/* Adjust pointers */

@@ -50,7 +50,7 @@ static int bz2_decompressor_read(void *state, void *buffer, size_t size, size_t 
 	if (!dec->initialized)
 		return BSDIFF_ERROR;
 	if (dec->bzerr != BZ_OK)
-		return BSDIFF_ERROR;
+		return (dec->bzerr == BZ_STREAM_END) ? BSDIFF_END_OF_FILE : BSDIFF_ERROR;
 	if (size >= UINT32_MAX)
 		return BSDIFF_INVALID_ARG;
 	if (size == 0)
@@ -80,7 +80,7 @@ static int bz2_decompressor_read(void *state, void *buffer, size_t size, size_t 
 
 		/* the end of compressed stream was detected */
 		if (dec->bzerr == BZ_STREAM_END)
-			return BSDIFF_SUCCESS;
+			return BSDIFF_END_OF_FILE;
 		/* all output buffer has been consumed */
 		if (dec->bzstrm.avail_out == 0)
 			return BSDIFF_SUCCESS;
