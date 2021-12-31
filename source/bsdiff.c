@@ -451,7 +451,7 @@ int bsdiff(
 	{
 		HANDLE_ERROR(BSDIFF_ERROR, "create compressor for extra block");
 	}
-	if (pfbz2.write(pfbz2.state, db, (size_t)dblen) != BSDIFF_SUCCESS)
+	if (pfbz2.write(pfbz2.state, eb, (size_t)eblen) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "write extra data");
 	if (pfbz2.flush(pfbz2.state) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_ERROR, "flush extra data");
