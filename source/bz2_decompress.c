@@ -44,17 +44,17 @@ static int bz2_decompressor_read(void *state, void *buffer, size_t size, size_t 
 	int ret;
 	size_t cb;
 	unsigned int old_avail_out;
-	
+
+	*readed = 0;
+
 	if (!dec->initialized)
 		return BSDIFF_ERROR;
 	if (dec->bzerr != BZ_OK)
 		return BSDIFF_ERROR;
 	if (size >= UINT32_MAX)
 		return BSDIFF_INVALID_ARG;
-	if (size == 0) {
-		*readed = 0;
+	if (size == 0)
 		return BSDIFF_SUCCESS;
-	}
 
 	dec->bzstrm.avail_out = (unsigned int)size;
 	dec->bzstrm.next_out = (char*)buffer;
