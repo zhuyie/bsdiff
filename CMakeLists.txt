@@ -28,7 +28,7 @@ add_libdivsufsort()
 
 # bsdiff
 add_library(bsdiff
-    source/misc.h
+    source/bsdiff_private.h
     source/misc.c
     source/file_stream.c
     source/sub_stream.h
