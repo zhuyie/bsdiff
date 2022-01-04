@@ -32,7 +32,7 @@
 #include <sys/types.h>
 
 #include "bsdiff.h"
-#include "misc.h"
+#include "bsdiff_private.h"
 #include "sub_stream.h"
 
 #ifdef _MSC_VER

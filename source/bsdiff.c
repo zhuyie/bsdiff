@@ -36,7 +36,7 @@
 #include <divsufsort64.h>
 
 #include "bsdiff.h"
-#include "misc.h"
+#include "bsdiff_private.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable:6011)  /* Dereferencing NULL pointer in 'pfbz2.init' */

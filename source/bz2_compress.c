@@ -1,4 +1,5 @@
 #include "bsdiff.h"
+#include "bsdiff_private.h"
 #include <stdlib.h>
 #include <string.h>
 #include <bzlib.h>

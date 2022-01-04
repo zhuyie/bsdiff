@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "misc.h"
 #include "bsdiff.h"
+#include "bsdiff_private.h"
 
 void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...)
 {
