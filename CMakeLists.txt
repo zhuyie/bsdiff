@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project(bsdiff)
 
 option(BUILD_SHARED_LIBS "Set to ON to build shared libraries" OFF)
-option(BUILD_STANDALONES "Set to OFF to not build standalones" OFF)
+option(BUILD_STANDALONES "Set to OFF to not build standalones" ON)
 
 # bzip2
 add_library(bzip2 STATIC
@@ -41,6 +41,9 @@ target_include_directories(bsdiff
     PUBLIC "3rdparty/bzip2"
     PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libdivsufsort/include"
     PUBLIC "include")
+if (BUILD_SHARED_LIBS)
+    target_compile_definitions(bsdiff PUBLIC "BSDIFF_BUILD_DLL")
+endif()
 if (MSVC)
     target_compile_definitions(bsdiff PUBLIC "_CRT_SECURE_NO_WARNINGS")
 endif()
@@ -51,9 +54,15 @@ if (BUILD_STANDALONES)
     add_executable(bsdiff_diff source/bsdiff_diff.c)
     target_include_directories(bsdiff_diff PUBLIC "include")
     target_link_libraries(bsdiff_diff bsdiff)
+    if (BUILD_SHARED_LIBS)
+        target_compile_definitions(bsdiff PUBLIC "BSDIFF_DLL")
+    endif()
 
     # bsdiff_patch
     add_executable(bsdiff_patch source/bsdiff_patch.c)
     target_include_directories(bsdiff_patch PUBLIC "include")
     target_link_libraries(bsdiff_patch bsdiff)
+    if (BUILD_SHARED_LIBS)
+        target_compile_definitions(bsdiff PUBLIC "BSDIFF_DLL")
+    endif()
 endif()

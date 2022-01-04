@@ -35,6 +35,20 @@
 extern "C" {
 #endif
 
+#ifndef BSDIFF_API
+  #if defined(_WIN32)
+    #if defined(BSDIFF_BUILD_DLL)
+      #define BSDIFF_API __declspec(dllexport)
+    #elif defined(BSDIFF_DLL)
+      #define BSDIFF_API __declspec(dllimport)
+    #else
+      #define BSDIFF_API
+    #endif
+  #else
+    #define BSDIFF_API
+  #endif
+#endif
+
 /* return codes */
 #define BSDIFF_SUCCESS 0
 #define BSDIFF_ERROR 1                  /* generic error */
@@ -57,11 +71,13 @@ struct bsdiff_stream
 	void (*close)(void *state);
 };
 
+BSDIFF_API
 int bsdiff_open_file_stream(
 	const char *filename, 
 	int write,
 	struct bsdiff_stream *stream);
 
+BSDIFF_API
 void bsdiff_close_stream(
 	struct bsdiff_stream *stream);
 
@@ -75,9 +91,11 @@ struct bsdiff_compressor
 	void (*close)(void *state);
 };
 
+BSDIFF_API
 int bsdiff_create_bz2_compressor(
 	struct bsdiff_compressor *enc);
 
+BSDIFF_API
 void bsdiff_close_compressor(
 	struct bsdiff_compressor *enc);
 
@@ -90,9 +108,11 @@ struct bsdiff_decompressor
 	void (*close)(void *state);
 };
 
+BSDIFF_API
 int bsdiff_create_bz2_decompressor(
 	struct bsdiff_decompressor *dec);
 
+BSDIFF_API
 void bsdiff_close_decompressor(
 	struct bsdiff_decompressor *dec);
 
@@ -103,12 +123,14 @@ struct bsdiff_ctx
 	void (*log_error)(void *opaque, const char *errmsg);
 };
 
+BSDIFF_API
 int bsdiff(
 	struct bsdiff_ctx *ctx,
 	struct bsdiff_stream *oldfile, 
 	struct bsdiff_stream *newfile, 
 	struct bsdiff_stream *patchfile);
 
+BSDIFF_API
 int bspatch(
 	struct bsdiff_ctx *ctx,
 	struct bsdiff_stream *oldfile, 
