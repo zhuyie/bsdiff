@@ -38,31 +38,31 @@ add_library(bsdiff
     source/bsdiff.c
     source/bspatch.c)
 target_include_directories(bsdiff
-    PUBLIC "3rdparty/bzip2"
-    PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libdivsufsort/include"
-    PUBLIC "include")
+    PRIVATE "3rdparty/bzip2"
+    PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libdivsufsort/include"
+    PRIVATE "include")
 if (BUILD_SHARED_LIBS)
-    target_compile_definitions(bsdiff PUBLIC "BSDIFF_BUILD_DLL")
+    target_compile_definitions(bsdiff PRIVATE "BSDIFF_BUILD_DLL")
 endif()
 if (MSVC)
-    target_compile_definitions(bsdiff PUBLIC "_CRT_SECURE_NO_WARNINGS")
+    target_compile_definitions(bsdiff PRIVATE "_CRT_SECURE_NO_WARNINGS")
 endif()
-target_link_libraries(bsdiff bzip2 divsufsort divsufsort64)
+target_link_libraries(bsdiff PRIVATE bzip2 PRIVATE divsufsort PRIVATE divsufsort64)
 
 if (BUILD_STANDALONES)
     # bsdiff_diff
     add_executable(bsdiff_diff source/bsdiff_diff.c)
-    target_include_directories(bsdiff_diff PUBLIC "include")
-    target_link_libraries(bsdiff_diff bsdiff)
+    target_include_directories(bsdiff_diff PRIVATE "include")
+    target_link_libraries(bsdiff_diff PRIVATE bsdiff)
     if (BUILD_SHARED_LIBS)
-        target_compile_definitions(bsdiff_diff PUBLIC "BSDIFF_DLL")
+        target_compile_definitions(bsdiff_diff PRIVATE "BSDIFF_DLL")
     endif()
 
     # bsdiff_patch
     add_executable(bsdiff_patch source/bsdiff_patch.c)
-    target_include_directories(bsdiff_patch PUBLIC "include")
-    target_link_libraries(bsdiff_patch bsdiff)
+    target_include_directories(bsdiff_patch PRIVATE "include")
+    target_link_libraries(bsdiff_patch PRIVATE bsdiff)
     if (BUILD_SHARED_LIBS)
-        target_compile_definitions(bsdiff_patch PUBLIC "BSDIFF_DLL")
+        target_compile_definitions(bsdiff_patch PRIVATE "BSDIFF_DLL")
     endif()
 endif()
