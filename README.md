@@ -2,7 +2,7 @@
 
 bsdiff is a library for building and applying patches to binary files.
 
-The original algorithm and implementation was developed by Colin Percival. The algorithm is detailed in his doctoral thesis: <http://www.daemonology.net/papers/thesis.pdf>. For more information visit his website at <http://www.daemonology.net/bsdiff/>.
+The original algorithm and implementation was developed by Colin Percival. The algorithm is described in his (unpublished) paper: <https://www.daemonology.net/papers/bsdiff.pdf>. For more information visit his website at <http://www.daemonology.net/bsdiff/>.
 
 I maintain this project separately from Colin's work, with the following goals:
 * Ability to easily embed the routines as a library instead of an external binary.
