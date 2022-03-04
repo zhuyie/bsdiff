@@ -46,15 +46,15 @@ int main(int argc,char * argv[])
 	}
 
 	if ((ret = bsdiff_open_file_stream(argv[1], 0, &oldfile)) != BSDIFF_SUCCESS) {
-		fprintf(stderr, "can't open oldfile(%s)\n", argv[1]);
+		fprintf(stderr, "can't open oldfile: %s\n", argv[1]);
 		goto cleanup;
 	}
 	if ((ret = bsdiff_open_file_stream(argv[2], 0, &patchfile)) != BSDIFF_SUCCESS) {
-		fprintf(stderr, "can't open patchfile(%s)\n", argv[2]);
+		fprintf(stderr, "can't open patchfile: %s\n", argv[2]);
 		goto cleanup;
 	}
 	if ((ret = bsdiff_open_file_stream(argv[3], 1, &newfile)) != BSDIFF_SUCCESS) {
-		fprintf(stderr, "can't open newfile(%s)\n", argv[3]);
+		fprintf(stderr, "can't open newfile: %s\n", argv[3]);
 		goto cleanup;
 	}
 	

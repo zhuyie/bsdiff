@@ -131,7 +131,7 @@ int bspatch(
 	if ((patchfile->seek(patchfile->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
 		(patchfile->tell(patchfile->state, &read_end) != BSDIFF_SUCCESS))
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "get the size of patchfile");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of patchfile");
 	}
 	if (bsdiff_open_substream(patchfile, read_start, read_end, &epf) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "open substream for extra block");
@@ -144,17 +144,17 @@ int bspatch(
 		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
 		(oldfile->seek(oldfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS))
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "get the size of oldfile");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of oldfile");
 	}
 	if (oldsize >= SIZE_MAX)
-		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
+		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
 	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
 
 	if (newsize >= SIZE_MAX)
-		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the newfile is too large");
+		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
 	if ((new = malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
 

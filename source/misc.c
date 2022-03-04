@@ -4,13 +4,35 @@
 #include "bsdiff.h"
 #include "bsdiff_private.h"
 
+static const char* err_code_str(int errcode)
+{
+	switch (errcode) {
+	case BSDIFF_SUCCESS:
+		return "success";
+	case BSDIFF_INVALID_ARG:
+		return "invalid argument";
+	case BSDIFF_OUT_OF_MEMORY:
+		return "out of memory";
+	case BSDIFF_FILE_ERROR:
+		return "file related error";
+	case BSDIFF_END_OF_FILE:
+		return "end of file";
+	case BSDIFF_CORRUPT_PATCH:
+		return "corrupt patch data";
+	case BSDIFF_SIZE_TOO_LARGE:
+		return "size is too large";
+	default:
+		return "unknown error";
+	}
+}
+
 void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...)
 {
 	char buf[256] = { 0 };
 	int n, off = 0, len = 255;
 	va_list args;
 	if (ctx->log_error) {
-		n = snprintf(buf, len, "ERROR(%d): ", errcode);
+		n = snprintf(buf, len, "bsdiff err: %s(%d), msg: ", err_code_str(errcode), errcode);
 		if (n < 0)
 			return;
 		if (n >= len) {

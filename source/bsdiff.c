@@ -131,10 +131,10 @@ int bsdiff(
 		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
 		(oldfile->seek(oldfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS))
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "get the size of oldfile");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of oldfile");
 	}
 	if ((oldsize >= SIZE_MAX) || ((oldsize + 1) * sizeof(int64_t) >= SIZE_MAX))
-		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the oldfile is too large");
+		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
 	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
@@ -146,7 +146,7 @@ int bsdiff(
 
 	SA[0] = oldsize;
 	if (divsufsort64(old, SA + 1, oldsize) != 0)
-		HANDLE_ERROR(BSDIFF_ERROR, "constructs suffix array");
+		HANDLE_ERROR(BSDIFF_ERROR, "construct suffix array");
 
 	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
@@ -154,10 +154,10 @@ int bsdiff(
 		(newfile->tell(newfile->state, &newsize) != BSDIFF_SUCCESS) ||
 		(newfile->seek(newfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS))
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "get the size of newfile");
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of newfile");
 	}
 	if (newsize >= SIZE_MAX)
-		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "the newfile is too large");
+		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
 	if ((new = malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
 	if (newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS)
