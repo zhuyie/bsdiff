@@ -9,6 +9,8 @@ static const char* err_code_str(int errcode)
 	switch (errcode) {
 	case BSDIFF_SUCCESS:
 		return "success";
+	case BSDIFF_ERROR:
+		return "generic error";
 	case BSDIFF_INVALID_ARG:
 		return "invalid argument";
 	case BSDIFF_OUT_OF_MEMORY:
