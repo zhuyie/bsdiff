@@ -182,14 +182,14 @@ int bsdiff(
 	if (oldsize < 0x7fffffff)
 	{
 		((int32_t*)SA)[0] = (int32_t)oldsize;
-		if (divsufsort(old, ((int32_t*)SA) + 1, oldsize) != 0)
+		if (divsufsort(old, ((int32_t*)SA) + 1, (int32_t)oldsize) != 0)
 			HANDLE_ERROR(BSDIFF_ERROR, "construct suffix array");
 		psearch = search32;
 	}
 	else
 	{
-		((int64_t*)SA)[0] = oldsize;
-		if (divsufsort64(old, ((int64_t*)SA) + 1, oldsize) != 0)
+		((int64_t*)SA)[0] = (int64_t)oldsize;
+		if (divsufsort64(old, ((int64_t*)SA) + 1, (int64_t)oldsize) != 0)
 			HANDLE_ERROR(BSDIFF_ERROR, "construct suffix array");
 		psearch = search64;
 	}
