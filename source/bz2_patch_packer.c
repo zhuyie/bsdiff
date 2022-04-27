@@ -1,10 +1,12 @@
 #include "bsdiff.h"
 #include "bsdiff_private.h"
-#include "sub_stream.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+
+int bsdiff_create_bz2_compressor(struct bsdiff_compressor *enc);
+int bsdiff_create_bz2_decompressor(struct bsdiff_decompressor *dec);
 
 static int64_t offtin(uint8_t *buf)
 {

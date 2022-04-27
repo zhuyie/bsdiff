@@ -12,6 +12,13 @@ struct bsdiff_ctx;
 void __bsdiff_log_error(struct bsdiff_ctx *ctx, int errcode, const char *fmt, ...);
 
 
+int bsdiff_open_substream(
+	struct bsdiff_stream *base,
+	int64_t read_start,
+	int64_t read_end,
+	struct bsdiff_stream *substream);
+
+
 /* bsdiff_compressor */
 struct bsdiff_compressor
 {
@@ -22,11 +29,9 @@ struct bsdiff_compressor
 	void (*close)(void *state);
 };
 
-int bsdiff_create_bz2_compressor(
-	struct bsdiff_compressor *enc);
-
 void bsdiff_close_compressor(
 	struct bsdiff_compressor *enc);
+
 
 /* bsdiff_decompressor */
 struct bsdiff_decompressor
@@ -36,9 +41,6 @@ struct bsdiff_decompressor
 	int (*read)(void *state, void *buffer, size_t size, size_t *readed);
 	void (*close)(void *state);
 };
-
-int bsdiff_create_bz2_decompressor(
-	struct bsdiff_decompressor *dec);
 
 void bsdiff_close_decompressor(
 	struct bsdiff_decompressor *dec);

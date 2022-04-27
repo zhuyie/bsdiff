@@ -1,4 +1,5 @@
-#include "sub_stream.h"
+#include "bsdiff.h"
+#include "bsdiff_private.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
