@@ -39,6 +39,7 @@ int main(int argc, char * argv[])
 	int ret = 1;
 	struct bsdiff_stream oldfile = { 0 }, newfile = { 0 }, patchfile = { 0 };
 	struct bsdiff_ctx ctx = { 0 };
+	struct bsdiff_patch_packer packer = { 0 };
 
 	if (argc != 4) {
 		fprintf(stderr, "usage: %s oldfile newfile patchfile\n", argv[0]);
@@ -57,14 +58,20 @@ int main(int argc, char * argv[])
 		fprintf(stderr, "can't open patchfile: %s\n", argv[3]);
 		goto cleanup;
 	}
+	if ((ret = bsdiff_open_bz2_patch_packer(&patchfile, 1, &packer)) != BSDIFF_SUCCESS) {
+		fprintf(stderr, "can't create BZ2 patch packer\n");
+		goto cleanup;
+	}
 
 	ctx.log_error = log_error;
-	if ((ret = bsdiff(&ctx, &oldfile, &newfile, &patchfile)) != BSDIFF_SUCCESS) {
+
+	if ((ret = bsdiff(&ctx, &oldfile, &newfile, &packer)) != BSDIFF_SUCCESS) {
 		fprintf(stderr, "bsdiff failed: %d\n", ret);
 		goto cleanup;
 	}
 
 cleanup:
+	bsdiff_close_patch_packer(&packer);
 	bsdiff_close_stream(&patchfile);
 	bsdiff_close_stream(&newfile);
 	bsdiff_close_stream(&oldfile);

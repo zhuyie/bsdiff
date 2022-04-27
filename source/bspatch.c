@@ -33,112 +33,20 @@
 
 #include "bsdiff.h"
 #include "bsdiff_private.h"
-#include "sub_stream.h"
-
-#ifdef _MSC_VER
-#pragma warning(disable:6011)  /* Dereferencing NULL pointer in 'cpfbz2.init' */
-#endif
-
-static int64_t offtin(uint8_t *buf)
-{
-	int64_t y;
-
-	y = buf[7] & 0x7F;
-	y = y * 256; y += buf[6];
-	y = y * 256; y += buf[5];
-	y = y * 256; y += buf[4];
-	y = y * 256; y += buf[3];
-	y = y * 256; y += buf[2];
-	y = y * 256; y += buf[1];
-	y = y * 256; y += buf[0];
-
-	if (buf[7] & 0x80)
-		y = -y;
-
-	return y;
-}
 
 int bspatch(
 	struct bsdiff_ctx *ctx,
 	struct bsdiff_stream *oldfile, 
-	struct bsdiff_stream *patchfile, 
-	struct bsdiff_stream *newfile)
+	struct bsdiff_stream *newfile,
+	struct bsdiff_patch_packer *packer)
 {
 	int ret;
-	struct bsdiff_stream cpf = { 0 }, dpf = { 0 }, epf = { 0 };
-	struct bsdiff_decompressor cpfbz2 = { 0 }, dpfbz2 = { 0 }, epfbz2 = { 0 };
-	int64_t read_start, read_end;
 	size_t cb;
 	int64_t oldsize, newsize;
-	int64_t bzctrllen, bzdatalen;
-	uint8_t header[32], buf[24];
 	uint8_t *old = NULL, *new = NULL;
 	int64_t oldpos, newpos;
 	int64_t ctrl[3];
 	int64_t i;
-
-	/*
-	File format:
-		0	8	"BSDIFF40"
-		8	8	X
-		16	8	Y
-		24	8	sizeof(newfile)
-		32	X	bzip2(control block)
-		32+X	Y	bzip2(diff block)
-		32+X+Y	???	bzip2(extra block)
-	with control block a set of triples (x,y,z) meaning "add x bytes
-	from oldfile to x bytes from the diff block; copy y bytes from the
-	extra block; seek forwards in oldfile by z bytes".
-	*/
-
-	/* Read header */
-	ret = patchfile->read(patchfile->state, header, 32, &cb);
-	if (ret != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read patchfile");
-
-	/* Check for appropriate magic */
-	if (memcmp(header, "BSDIFF40", 8) != 0)
-		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "magic mismatch");
-
-	/* Read lengths from header */
-	bzctrllen = offtin(header + 8);
-	bzdatalen = offtin(header + 16);
-	newsize = offtin(header + 24);
-	if ((bzctrllen < 0) || (bzdatalen < 0) || (newsize < 0))
-		HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid lengths");
-
-	/* Open substreams and create decompressors */
-	/* control block */
-	read_start = 32;
-	read_end = read_start + bzctrllen;
-	if (bsdiff_open_substream(patchfile, read_start, read_end, &cpf) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "open substream for control block");
-	if (bsdiff_create_bz2_decompressor(&cpfbz2) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_ERROR, "create decompressor for control block");
-	if (cpfbz2.init(cpfbz2.state, &cpf) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_ERROR, "init decompressor for control block");
-	/* data block */
-	read_start = read_end;
-	read_end = read_start + bzdatalen;
-	if (bsdiff_open_substream(patchfile, read_start, read_end, &dpf) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "open substream for data block");
-	if (bsdiff_create_bz2_decompressor(&dpfbz2) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_ERROR, "create decompressor for data block");
-	if (dpfbz2.init(dpfbz2.state, &dpf) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_ERROR, "init decompressor for data block");
-	/* extra block */
-	read_start = read_end;
-	if ((patchfile->seek(patchfile->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
-		(patchfile->tell(patchfile->state, &read_end) != BSDIFF_SUCCESS))
-	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of patchfile");
-	}
-	if (bsdiff_open_substream(patchfile, read_start, read_end, &epf) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "open substream for extra block");
-	if (bsdiff_create_bz2_decompressor(&epfbz2) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_ERROR, "create decompressor for extra block");
-	if (epfbz2.init(epfbz2.state, &epf) != BSDIFF_SUCCESS)
-		HANDLE_ERROR(BSDIFF_ERROR, "init decompressor for extra block");
 
 	if ((oldfile->seek(oldfile->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
 		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
@@ -153,6 +61,8 @@ int bspatch(
 	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
 
+	if (packer->read_new_size(packer->state, &newsize) != BSDIFF_SUCCESS)
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read new size from patch_packer");
 	if (newsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
 	if ((new = malloc((size_t)(newsize + 1))) == NULL)
@@ -161,11 +71,9 @@ int bspatch(
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
 		/* Read control data */
-		ret = cpfbz2.read(cpfbz2.state, buf, 24, &cb);
-		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != 24))
+		ret = packer->read_entry_header(packer->state, &ctrl[0], &ctrl[1], &ctrl[2]);
+		if (ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE)
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read control data");
-		for (i = 0; i <= 2; i++)
-			ctrl[i] = offtin(buf + i * 8);
 
 		/* Sanity-check */
 		if ((ctrl[0] < 0) || (ctrl[1] < 0))
@@ -176,7 +84,7 @@ int bspatch(
 		/* Read diff string */
 		if (ctrl[0] >= SIZE_MAX)
 			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read diff string");
-		ret = dpfbz2.read(dpfbz2.state, new + newpos, (size_t)ctrl[0], &cb);
+		ret = packer->read_entry_diff(packer->state, new + newpos, (size_t)ctrl[0], &cb);
 		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != (size_t)ctrl[0]))
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read diff string");
 
@@ -197,7 +105,7 @@ int bspatch(
 		/* Read extra string */
 		if (ctrl[1] >= SIZE_MAX)
 			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read extra string");
-		ret = epfbz2.read(epfbz2.state, new + newpos, (size_t)ctrl[1], &cb);
+		ret = packer->read_entry_extra(packer->state, new + newpos, (size_t)ctrl[1], &cb);
 		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != (size_t)ctrl[1]))
 			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read extra string");
 
@@ -216,12 +124,6 @@ int bspatch(
 	ret = BSDIFF_SUCCESS;
 
 cleanup:
-	bsdiff_close_decompressor(&cpfbz2);
-	bsdiff_close_decompressor(&dpfbz2);
-	bsdiff_close_decompressor(&epfbz2);
-	bsdiff_close_stream(&cpf);
-	bsdiff_close_stream(&dpf);
-	bsdiff_close_stream(&epf);
 	if (new != NULL) { free(new); }
 	if (old != NULL) { free(old); }
 

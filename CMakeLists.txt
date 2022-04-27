@@ -35,6 +35,7 @@ add_library(bsdiff
     source/sub_stream.c
     source/bz2_compress.c
     source/bz2_decompress.c
+    source/bz2_patch_packer.c
     source/bsdiff.c
     source/bspatch.c)
 target_include_directories(bsdiff

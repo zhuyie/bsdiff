@@ -86,3 +86,12 @@ void bsdiff_close_decompressor(
 		memset(dec, 0, sizeof(*dec));
 	}
 }
+
+void bsdiff_close_patch_packer(
+	struct bsdiff_patch_packer *packer)
+{
+	if (packer->close != NULL) {
+		packer->close(packer->state);
+		memset(packer, 0, sizeof(*packer));
+	}
+}

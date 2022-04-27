@@ -81,6 +81,45 @@ BSDIFF_API
 void bsdiff_close_stream(
 	struct bsdiff_stream *stream);
 
+
+/* bsdiff_patch_packer */
+struct bsdiff_patch_packer
+{
+	void *state;
+
+	int (*read_new_size)(
+		void *state, int64_t *size);
+	int (*read_entry_header)(
+		void *state, int64_t *diff, int64_t *extra, int64_t *seek);
+	int (*read_entry_diff)(
+		void *state, void *buffer, size_t size, size_t *readed);
+	int (*read_entry_extra)(
+		void *state, void *buffer, size_t size, size_t *readed);
+	
+	int (*write_new_size)(
+		void *state, int64_t size);
+	int (*write_entry_header)(
+		void *state, int64_t diff, int64_t extra, int64_t seek);
+	int (*write_entry_diff)(
+		void *state, const void *buffer, size_t size);
+	int (*write_entry_extra)(
+		void *state, const void *buffer, size_t size);
+	int (*flush)(void *state);
+
+	void (*close)(void *state);
+};
+
+BSDIFF_API
+int bsdiff_open_bz2_patch_packer(
+	struct bsdiff_stream *stream,
+	int write,
+	struct bsdiff_patch_packer *packer);
+
+BSDIFF_API
+void bsdiff_close_patch_packer(
+	struct bsdiff_patch_packer *packer);
+
+
 /* bsdiff_ctx */
 struct bsdiff_ctx
 {
@@ -93,14 +132,14 @@ int bsdiff(
 	struct bsdiff_ctx *ctx,
 	struct bsdiff_stream *oldfile, 
 	struct bsdiff_stream *newfile, 
-	struct bsdiff_stream *patchfile);
+	struct bsdiff_patch_packer *packer);
 
 BSDIFF_API
 int bspatch(
 	struct bsdiff_ctx *ctx,
 	struct bsdiff_stream *oldfile, 
-	struct bsdiff_stream *patchfile, 
-	struct bsdiff_stream *newfile);
+	struct bsdiff_stream *newfile,
+	struct bsdiff_patch_packer *packer);
 
 #ifdef __cplusplus
 }
