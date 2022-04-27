@@ -50,19 +50,21 @@ endif()
 target_link_libraries(bsdiff PRIVATE bzip2 PRIVATE divsufsort PRIVATE divsufsort64)
 
 if (BUILD_STANDALONES)
-    # bsdiff_diff
-    add_executable(bsdiff_diff source/bsdiff_diff.c)
-    target_include_directories(bsdiff_diff PRIVATE "include")
-    target_link_libraries(bsdiff_diff PRIVATE bsdiff)
+    # bsdiff_app
+    add_executable(bsdiff_app source/bsdiff_app.c)
+    set_target_properties(bsdiff_app PROPERTIES OUTPUT_NAME "bsdiff")
+    target_include_directories(bsdiff_app PRIVATE "include")
+    target_link_libraries(bsdiff_app PRIVATE bsdiff)
     if (BUILD_SHARED_LIBS)
-        target_compile_definitions(bsdiff_diff PRIVATE "BSDIFF_DLL")
+        target_compile_definitions(bsdiff_app PRIVATE "BSDIFF_DLL")
     endif()
 
-    # bsdiff_patch
-    add_executable(bsdiff_patch source/bsdiff_patch.c)
-    target_include_directories(bsdiff_patch PRIVATE "include")
-    target_link_libraries(bsdiff_patch PRIVATE bsdiff)
+    # bspatch_app
+    add_executable(bspatch_app source/bspatch_app.c)
+    set_target_properties(bspatch_app PROPERTIES OUTPUT_NAME "bspatch")
+    target_include_directories(bspatch_app PRIVATE "include")
+    target_link_libraries(bspatch_app PRIVATE bsdiff)
     if (BUILD_SHARED_LIBS)
-        target_compile_definitions(bsdiff_patch PRIVATE "BSDIFF_DLL")
+        target_compile_definitions(bspatch_app PRIVATE "BSDIFF_DLL")
     endif()
 endif()
