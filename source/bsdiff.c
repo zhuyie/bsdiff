@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -129,11 +130,15 @@ int bsdiff(
 	int64_t bufsize;
 	uint8_t *SA = NULL;
 
+	assert(oldfile->get_mode(oldfile->state) == BSDIFF_MODE_READ);
+	assert(newfile->get_mode(newfile->state) == BSDIFF_MODE_READ);
+	assert(packer->get_mode(packer->state) == BSDIFF_MODE_WRITE);
+
 	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if ((oldfile->seek(oldfile->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
+	if ((oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
 		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
-		(oldfile->seek(oldfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS))
+		(oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of oldfile");
 	}
@@ -170,9 +175,9 @@ int bsdiff(
 
 	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
 		that we never try to malloc(0) and get a NULL pointer */
-	if ((newfile->seek(newfile->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
+	if ((newfile->seek(newfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
 		(newfile->tell(newfile->state, &newsize) != BSDIFF_SUCCESS) ||
-		(newfile->seek(newfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS))
+		(newfile->seek(newfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of newfile");
 	}

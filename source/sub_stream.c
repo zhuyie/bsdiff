@@ -16,7 +16,7 @@ static int substream_seek(void *state, int64_t offset, int origin)
 {
 	struct substream_state *substream = (struct substream_state*)state;
 	/* only support SEEK_SET */
-	if (origin != SEEK_SET)
+	if (origin != BSDIFF_SEEK_SET)
 		return BSDIFF_INVALID_ARG;
 	if (offset < substream->start || offset > substream->end)
 		return BSDIFF_INVALID_ARG;
@@ -50,7 +50,7 @@ static int substream_read(void *state, void *buffer, size_t size, size_t *readed
 	if (substream->current + (int64_t)size > substream->end)
 		cb = (size_t)(substream->end - substream->current);
 	/* (re)seek to current */
-	if (base->seek(base->state, substream->current, SEEK_SET) != BSDIFF_SUCCESS)
+	if (base->seek(base->state, substream->current, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
 	/* read */
 	ret = base->read(base->state, buffer, cb, readed);
@@ -68,6 +68,11 @@ static void substream_close(void *state)
 	free(substream);
 }
 
+static int substream_getmode(void *state)
+{
+	return BSDIFF_MODE_READ;
+}
+
 int bsdiff_open_substream(
 	struct bsdiff_stream *base,
 	int64_t read_start,
@@ -78,14 +83,14 @@ int bsdiff_open_substream(
 	struct substream_state *state;
 
 	/* base stream should be read-only */
-	if (base->read == NULL || base->write != NULL)
+	if (base->get_mode(base->state) != BSDIFF_MODE_READ)
 		return BSDIFF_INVALID_ARG;
 
 	/* check region */
 	if ((base->tell(base->state, &pos) != BSDIFF_SUCCESS) ||
-		(base->seek(base->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
+		(base->seek(base->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
 		(base->tell(base->state, &base_size) != BSDIFF_SUCCESS) ||
-		(base->seek(base->state, pos, SEEK_SET) != BSDIFF_SUCCESS))
+		(base->seek(base->state, pos, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
 	{
 		return BSDIFF_ERROR;
 	}
@@ -102,10 +107,11 @@ int bsdiff_open_substream(
 
 	memset(substream, 0, sizeof(*substream));
 	substream->state = state;
+	substream->close = substream_close;
+	substream->get_mode = substream_getmode;
 	substream->seek = substream_seek;
 	substream->tell = substream_tell;
 	substream->read = substream_read;
-	substream->close = substream_close;
 
 	return BSDIFF_SUCCESS;
 }

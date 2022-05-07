@@ -1,6 +1,7 @@
 #include "bsdiff.h"
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 static int bsdiff_stream_file_seek(void *state, int64_t offset, int origin)
 {
@@ -63,28 +64,41 @@ static void bsdiff_stream_file_close(void *state)
 	fclose(f);
 }
 
+static int bsdiff_stream_file_getmode_read(void *state)
+{
+	return BSDIFF_MODE_READ;
+}
+
+static int bsdiff_stream_file_getmode_write(void *state)
+{
+	return BSDIFF_MODE_WRITE;
+}
+
 int bsdiff_open_file_stream(
 	const char *filename, 
-	int write,
+	int mode,
 	struct bsdiff_stream *stream)
 {
 	FILE *f;
+	assert(mode >= BSDIFF_MODE_READ && mode <= BSDIFF_MODE_WRITE);
 
-	f = fopen(filename, write ? "wb" : "rb");
+	f = fopen(filename, (mode == BSDIFF_MODE_WRITE) ? "wb" : "rb");
 	if (f == NULL)
 		return BSDIFF_FILE_ERROR;
 
 	memset(stream, 0, sizeof(*stream));
 	stream->state = f;
+	stream->close = bsdiff_stream_file_close;
 	stream->seek = bsdiff_stream_file_seek;
 	stream->tell = bsdiff_stream_file_tell;
-	if (!write) {
+	if (mode != BSDIFF_MODE_WRITE) {
+		stream->get_mode = bsdiff_stream_file_getmode_read;
 		stream->read = bsdiff_stream_file_read;
 	} else {
+		stream->get_mode = bsdiff_stream_file_getmode_write;
 		stream->write = bsdiff_stream_file_write;
 		stream->flush = bsdiff_stream_file_flush;
 	}
-	stream->close = bsdiff_stream_file_close;
 
 	return BSDIFF_SUCCESS;
 }

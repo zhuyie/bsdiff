@@ -59,22 +59,37 @@ extern "C" {
 #define BSDIFF_CORRUPT_PATCH 6          /* corrupt patch data */
 #define BSDIFF_SIZE_TOO_LARGE 7         /* size is too large */
 
+/* modes */
+#define BSDIFF_MODE_READ  0
+#define BSDIFF_MODE_WRITE 1
+
+
 /* bsdiff_stream */
+#define BSDIFF_SEEK_SET 0
+#define BSDIFF_SEEK_CUR 1
+#define BSDIFF_SEEK_END 2
+
 struct bsdiff_stream
 {
 	void *state;
+	/* common */
+	void (*close)(void *state);
+	int (*get_mode)(void *state);
 	int (*seek)(void *state, int64_t offset, int origin);
 	int (*tell)(void *state, int64_t *position);
+	/* read mode only */
 	int (*read)(void *state, void *buffer, size_t size, size_t *readed);
+	/* write mode only */
 	int (*write)(void *state, const void *buffer, size_t size);
 	int (*flush)(void *state);
-	void (*close)(void *state);
+	/* optional */
+	int (*get_buffer)(void *state, const void **ppbuffer, size_t *psize);
 };
 
 BSDIFF_API
 int bsdiff_open_file_stream(
 	const char *filename, 
-	int write,
+	int mode,
 	struct bsdiff_stream *stream);
 
 BSDIFF_API
@@ -86,7 +101,10 @@ void bsdiff_close_stream(
 struct bsdiff_patch_packer
 {
 	void *state;
-
+	/* common */
+	void (*close)(void *state);
+	int (*get_mode)(void *state);
+	/* read mode only */
 	int (*read_new_size)(
 		void *state, int64_t *size);
 	int (*read_entry_header)(
@@ -95,7 +113,7 @@ struct bsdiff_patch_packer
 		void *state, void *buffer, size_t size, size_t *readed);
 	int (*read_entry_extra)(
 		void *state, void *buffer, size_t size, size_t *readed);
-	
+	/* write mode only */
 	int (*write_new_size)(
 		void *state, int64_t size);
 	int (*write_entry_header)(
@@ -105,14 +123,12 @@ struct bsdiff_patch_packer
 	int (*write_entry_extra)(
 		void *state, const void *buffer, size_t size);
 	int (*flush)(void *state);
-
-	void (*close)(void *state);
 };
 
 BSDIFF_API
 int bsdiff_open_bz2_patch_packer(
 	struct bsdiff_stream *stream,
-	int write,
+	int mode,
 	struct bsdiff_patch_packer *packer);
 
 BSDIFF_API

@@ -46,19 +46,19 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-	if ((ret = bsdiff_open_file_stream(argv[1], 0, &oldfile)) != BSDIFF_SUCCESS) {
+	if ((ret = bsdiff_open_file_stream(argv[1], BSDIFF_MODE_READ, &oldfile)) != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open oldfile: %s\n", argv[1]);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_file_stream(argv[2], 0, &newfile)) != BSDIFF_SUCCESS) {
+	if ((ret = bsdiff_open_file_stream(argv[2], BSDIFF_MODE_READ, &newfile)) != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open newfile: %s\n", argv[2]);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_file_stream(argv[3], 1, &patchfile)) != BSDIFF_SUCCESS) {
+	if ((ret = bsdiff_open_file_stream(argv[3], BSDIFF_MODE_WRITE, &patchfile)) != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open patchfile: %s\n", argv[3]);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_bz2_patch_packer(&patchfile, 1, &packer)) != BSDIFF_SUCCESS) {
+	if ((ret = bsdiff_open_bz2_patch_packer(&patchfile, BSDIFF_MODE_WRITE, &packer)) != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't create BZ2 patch packer\n");
 		goto cleanup;
 	}

@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -48,9 +49,13 @@ int bspatch(
 	int64_t ctrl[3];
 	int64_t i;
 
-	if ((oldfile->seek(oldfile->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
+	assert(oldfile->get_mode(oldfile->state) == BSDIFF_MODE_READ);
+	assert(newfile->get_mode(newfile->state) == BSDIFF_MODE_WRITE);
+	assert(packer->get_mode(packer->state) == BSDIFF_MODE_READ);
+
+	if ((oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
 		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
-		(oldfile->seek(oldfile->state, 0, SEEK_SET) != BSDIFF_SUCCESS))
+		(oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
 	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of oldfile");
 	}

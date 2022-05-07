@@ -52,7 +52,7 @@ static void offtout(int64_t x, uint8_t *buf)
 struct bz2_patch_packer
 {
 	struct bsdiff_stream *stream;
-	int write;
+	int mode;
 
 	int64_t new_size;
 
@@ -83,7 +83,7 @@ static int bz2_patch_packer_read_new_size(void *state, int64_t *size)
 	int64_t read_start, read_end;
 
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(!packer->write);
+	assert(packer->mode == BSDIFF_MODE_READ);
 	assert(packer->new_size == -1);
 
 	/*
@@ -137,7 +137,7 @@ static int bz2_patch_packer_read_new_size(void *state, int64_t *size)
 		return BSDIFF_ERROR;
 	/* extra block */
 	read_start = read_end;
-	if ((packer->stream->seek(packer->stream->state, 0, SEEK_END) != BSDIFF_SUCCESS) ||
+	if ((packer->stream->seek(packer->stream->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
 		(packer->stream->tell(packer->stream->state, &read_end) != BSDIFF_SUCCESS))
 	{
 		return BSDIFF_FILE_ERROR;
@@ -164,7 +164,7 @@ static int bz2_patch_packer_read_entry_header(
 	size_t cb;
 
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(!packer->write);
+	assert(packer->mode == BSDIFF_MODE_READ);
 	assert(packer->new_size >= 0);
 	assert(packer->header_x == 0 && packer->header_y == 0);
 
@@ -189,7 +189,7 @@ static int bz2_patch_packer_read_entry_diff(
 	int64_t cb;
 
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(!packer->write);
+	assert(packer->mode == BSDIFF_MODE_READ);
 	assert(packer->new_size >= 0);
 	assert(packer->header_x >= 0);
 
@@ -213,7 +213,7 @@ static int bz2_patch_packer_read_entry_extra(
 	int64_t cb;
 
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(!packer->write);
+	assert(packer->mode == BSDIFF_MODE_READ);
 	assert(packer->new_size >= 0);
 	assert(packer->header_y >= 0);
 
@@ -235,7 +235,7 @@ static int bz2_patch_packer_write_new_size(
 {
 	uint8_t header[32] = { 0 };
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(packer->write);
+	assert(packer->mode == BSDIFF_MODE_WRITE);
 	assert(packer->new_size == -1);
 	assert(size >= 0);
 
@@ -269,7 +269,7 @@ static int bz2_patch_packer_write_entry_header(
 	void *state, int64_t diff, int64_t extra, int64_t seek)
 {
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(packer->write);
+	assert(packer->mode == BSDIFF_MODE_WRITE);
 	assert(packer->new_size >= 0);
 	assert(diff >= 0);
 	assert(extra >= 0);
@@ -295,7 +295,7 @@ static int bz2_patch_packer_write_entry_diff(
 	void *state, const void *buffer, size_t size)
 {
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(packer->write);
+	assert(packer->mode == BSDIFF_MODE_WRITE);
 	assert(packer->new_size >= 0);
 
 	if ((int64_t)size > packer->header_x)
@@ -313,7 +313,7 @@ static int bz2_patch_packer_write_entry_extra(
 	void *state, const void *buffer, size_t size)
 {
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(packer->write);
+	assert(packer->mode == BSDIFF_MODE_WRITE);
 	assert(packer->new_size >= 0);
 
 	if ((int64_t)size > packer->header_y)
@@ -332,7 +332,7 @@ static int bz2_patch_packer_flush(void *state)
 	uint8_t header[32] = { 0 };
 	int64_t patchsize, patchsize2;
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
-	assert(packer->write);
+	assert(packer->mode == BSDIFF_MODE_WRITE);
 	assert(packer->new_size >= 0);
 	assert(packer->header_x == 0 && packer->header_y == 0);
 
@@ -379,7 +379,7 @@ static int bz2_patch_packer_flush(void *state)
 	bsdiff_close_compressor(&(packer->enc));
 
 	/* Seek to the beginning, (re)write the header */
-	if ((packer->stream->seek(packer->stream->state, 0, SEEK_SET) != BSDIFF_SUCCESS) ||
+	if ((packer->stream->seek(packer->stream->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS) ||
 		(packer->stream->write(packer->stream->state, header, 32) != BSDIFF_SUCCESS) ||
 		(packer->stream->flush(packer->stream->state) != BSDIFF_SUCCESS))
 	{
@@ -393,7 +393,7 @@ static void bz2_patch_packer_close(void *state)
 {
 	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
 	
-	if (!packer->write) {
+	if (packer->mode == BSDIFF_MODE_READ) {
 		bsdiff_close_decompressor(&(packer->cpf_dec));
 		bsdiff_close_decompressor(&(packer->dpf_dec));
 		bsdiff_close_decompressor(&(packer->epf_dec));
@@ -411,13 +411,20 @@ static void bz2_patch_packer_close(void *state)
 	free(packer);
 }
 
+static int bz2_patch_packer_getmode(void *state)
+{
+	struct bz2_patch_packer *packer = (struct bz2_patch_packer*)state;
+	return packer->mode;
+}
+
 int bsdiff_open_bz2_patch_packer(
 	struct bsdiff_stream *stream,
-	int write,
+	int mode,
 	struct bsdiff_patch_packer *packer)
 {
 	struct bz2_patch_packer *state;
 	assert(stream);
+	assert(mode >= BSDIFF_MODE_READ && mode <= BSDIFF_MODE_WRITE);
 	assert(packer);
 
 	state = malloc(sizeof(struct bz2_patch_packer));
@@ -425,12 +432,12 @@ int bsdiff_open_bz2_patch_packer(
 		return BSDIFF_OUT_OF_MEMORY;
 	memset(state, 0, sizeof(*state));
 	state->stream = stream;
-	state->write = write;
+	state->mode = mode;
 	state->new_size = -1;
 
 	memset(packer, 0, sizeof(*packer));
 	packer->state = state;
-	if (!write) {
+	if (mode == BSDIFF_MODE_READ) {
 		packer->read_new_size      = bz2_patch_packer_read_new_size;
 		packer->read_entry_header  = bz2_patch_packer_read_entry_header;
 		packer->read_entry_diff    = bz2_patch_packer_read_entry_diff;
@@ -443,6 +450,7 @@ int bsdiff_open_bz2_patch_packer(
 		packer->flush              = bz2_patch_packer_flush;
 	}
 	packer->close = bz2_patch_packer_close;
-
+	packer->get_mode = bz2_patch_packer_getmode;
+	
 	return BSDIFF_SUCCESS;
 }
