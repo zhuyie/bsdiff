@@ -167,7 +167,7 @@ int bsdiff_open_memory_stream(
 	if (state == NULL)
 		return BSDIFF_OUT_OF_MEMORY;
 
-	if (buffer != NULL && size > 0) {
+	if (buffer != NULL) {
 		/* read mode */
 		state->mode = BSDIFF_MODE_READ;
 		state->buffer = (void*)buffer;
@@ -175,14 +175,20 @@ int bsdiff_open_memory_stream(
 		state->size = size;
 	} else {
 		/* write mode */
-		if (buffer != NULL || size > 0) {
-			free(state);
-			return BSDIFF_INVALID_ARG;
-		}
 		state->mode = BSDIFF_MODE_WRITE;
-		state->buffer = NULL;
-		state->capacity = 0;
 		state->size = 0;
+		if (size > 0) {
+			/* initial reservation */
+			state->buffer = malloc(size);
+			if (state->buffer == NULL) {
+				free(state);
+				return BSDIFF_OUT_OF_MEMORY;
+			}
+			state->capacity = size;
+		} else {
+			state->buffer = NULL;
+			state->capacity = 0;
+		}
 	}
 	state->pos = 0;
 
