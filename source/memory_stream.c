@@ -73,10 +73,10 @@ static size_t calc_new_capacity(size_t current, size_t required)
 	while (cap < required) {
 		/*
 		  https://github.com/facebook/folly/blob/main/folly/docs/FBVector.md#memory-handling
-		  Our strategy: empty() ? 64 : capacity() * 1.5
+		  Our strategy: empty() ? 4096 : capacity() * 1.5
 		 */
 		if (cap == 0)
-			cap = 64;
+			cap = 4096;
 		else
 			cap = (cap * 3 + 1) / 2;
 	}
