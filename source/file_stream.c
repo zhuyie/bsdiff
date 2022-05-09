@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
-static int bsdiff_stream_file_seek(void *state, int64_t offset, int origin)
+static int filestream_seek(void *state, int64_t offset, int origin)
 {
 	int n;
 	FILE *f = (FILE*)state;
@@ -16,7 +16,7 @@ static int bsdiff_stream_file_seek(void *state, int64_t offset, int origin)
 #endif
 }
 
-static int bsdiff_stream_file_tell(void *state, int64_t *position)
+static int filestream_tell(void *state, int64_t *position)
 {
 	FILE *f = (FILE*)state;
 #if defined(_MSC_VER)
@@ -28,10 +28,10 @@ static int bsdiff_stream_file_tell(void *state, int64_t *position)
 #endif
 }
 
-static int bsdiff_stream_file_read(void *state, void *buffer, size_t size, size_t *readed)
+static int filestream_read(void *state, void *buffer, size_t size, size_t *readed)
 {
 	FILE *f = (FILE*)state;
-	
+
 	*readed = 0;
 
 	/* The ANSI standard requires a return value of 0 for a size of 0. */
@@ -45,31 +45,31 @@ static int bsdiff_stream_file_read(void *state, void *buffer, size_t size, size_
 	return BSDIFF_SUCCESS;
 }
 
-static int bsdiff_stream_file_write(void *state, const void *buffer, size_t size)
+static int filestream_write(void *state, const void *buffer, size_t size)
 {
 	FILE *f = (FILE*)state;
 	size_t n = fwrite(buffer, 1, size, f);
 	return (n < size) ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
 }
 
-static int bsdiff_stream_file_flush(void *state)
+static int filestream_flush(void *state)
 {
 	FILE *f = (FILE*)state;
 	return fflush(f) != 0 ? BSDIFF_FILE_ERROR : BSDIFF_SUCCESS;
 }
 
-static void bsdiff_stream_file_close(void *state)
+static void filestream_close(void *state)
 {
 	FILE *f = (FILE*)state;
 	fclose(f);
 }
 
-static int bsdiff_stream_file_getmode_read(void *state)
+static int filestream_getmode_read(void *state)
 {
 	return BSDIFF_MODE_READ;
 }
 
-static int bsdiff_stream_file_getmode_write(void *state)
+static int filestream_getmode_write(void *state)
 {
 	return BSDIFF_MODE_WRITE;
 }
@@ -88,16 +88,16 @@ int bsdiff_open_file_stream(
 
 	memset(stream, 0, sizeof(*stream));
 	stream->state = f;
-	stream->close = bsdiff_stream_file_close;
-	stream->seek = bsdiff_stream_file_seek;
-	stream->tell = bsdiff_stream_file_tell;
+	stream->close = filestream_close;
+	stream->seek = filestream_seek;
+	stream->tell = filestream_tell;
 	if (mode != BSDIFF_MODE_WRITE) {
-		stream->get_mode = bsdiff_stream_file_getmode_read;
-		stream->read = bsdiff_stream_file_read;
+		stream->get_mode = filestream_getmode_read;
+		stream->read = filestream_read;
 	} else {
-		stream->get_mode = bsdiff_stream_file_getmode_write;
-		stream->write = bsdiff_stream_file_write;
-		stream->flush = bsdiff_stream_file_flush;
+		stream->get_mode = filestream_getmode_write;
+		stream->write = filestream_write;
+		stream->flush = filestream_flush;
 	}
 
 	return BSDIFF_SUCCESS;

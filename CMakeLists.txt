@@ -31,6 +31,7 @@ add_library(bsdiff
     source/bsdiff_private.h
     source/misc.c
     source/file_stream.c
+    source/memory_stream.c
     source/sub_stream.c
     source/bz2_compress.c
     source/bz2_decompress.c
