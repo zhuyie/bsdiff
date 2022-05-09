@@ -172,6 +172,7 @@ int bsdiff_open_memory_stream(
 		state->mode = BSDIFF_MODE_READ;
 		state->buffer = (void*)buffer;
 		state->capacity = size;
+		state->size = size;
 	} else {
 		/* write mode */
 		if (buffer != NULL || size > 0) {
@@ -181,8 +182,8 @@ int bsdiff_open_memory_stream(
 		state->mode = BSDIFF_MODE_WRITE;
 		state->buffer = NULL;
 		state->capacity = 0;
+		state->size = 0;
 	}
-	state->size = 0;
 	state->pos = 0;
 
 	memset(stream, 0, sizeof(*stream));
