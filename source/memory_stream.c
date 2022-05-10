@@ -45,7 +45,6 @@ static int memstream_tell(void *state, int64_t *position)
 
 static int memstream_read(void *state, void *buffer, size_t size, size_t *readed)
 {
-	int ret;
 	struct memstream_state *s = (struct memstream_state*)state;
 	size_t cb;
 
@@ -60,7 +59,7 @@ static int memstream_read(void *state, void *buffer, size_t size, size_t *readed
 	if (s->pos + size > s->size)
 		cb = s->size - s->pos;
 
-	memcpy(buffer, s->buffer + s->pos, cb);
+	memcpy(buffer, (uint8_t*)s->buffer + s->pos, cb);
 
 	s->pos += cb;
 
@@ -107,7 +106,7 @@ static int memstream_write(void *state, const void *buffer, size_t size)
 	}
 
 	/* memcpy */
-	memcpy(s->buffer + s->pos, buffer, size);
+	memcpy((uint8_t*)s->buffer + s->pos, buffer, size);
 
 	/* Update pos */
 	s->pos += size;

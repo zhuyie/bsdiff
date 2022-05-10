@@ -201,7 +201,7 @@ static int bz2_patch_packer_read_entry_diff(
 	if (cb <= 0)
 		return BSDIFF_END_OF_FILE;
 
-	ret = packer->dpf_dec.read(packer->dpf_dec.state, buffer, cb, readed);
+	ret = packer->dpf_dec.read(packer->dpf_dec.state, buffer, (size_t)cb, readed);
 	packer->header_x -= (int64_t)(*readed);
 	return ret;
 }
@@ -225,7 +225,7 @@ static int bz2_patch_packer_read_entry_extra(
 	if (cb <= 0)
 		return BSDIFF_END_OF_FILE;
 
-	ret = packer->epf_dec.read(packer->epf_dec.state, buffer, cb, readed);
+	ret = packer->epf_dec.read(packer->epf_dec.state, buffer, (size_t)cb, readed);
 	packer->header_y -= (int64_t)(*readed);
 	return ret;
 }

@@ -292,7 +292,7 @@ int bsdiff(
 				for (j = 0; j < dblen; j++) {
 					db[j] = new[lastscan+i+j]-old[lastpos+i+j];
 				}
-				ret = packer->write_entry_diff(packer->state, db, dblen);
+				ret = packer->write_entry_diff(packer->state, db, (size_t)dblen);
 				if (ret != BSDIFF_SUCCESS)
 					HANDLE_ERROR(BSDIFF_ERROR, "write entry diff");
 				i += dblen;
@@ -301,7 +301,7 @@ int bsdiff(
 			/* Write entry extra */
 			if ((scan-lenb)-(lastscan+lenf) > 0) {
 				ret = packer->write_entry_extra(
-					packer->state, &new[lastscan+lenf], (scan-lenb)-(lastscan+lenf));
+					packer->state, &new[lastscan+lenf], (size_t)((scan-lenb)-(lastscan+lenf)));
 				if (ret != BSDIFF_SUCCESS)
 					HANDLE_ERROR(BSDIFF_ERROR, "write entry extra");
 			}
