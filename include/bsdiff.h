@@ -35,18 +35,20 @@
 extern "C" {
 #endif
 
-#ifndef BSDIFF_API
-  #if defined(_WIN32)
-    #if defined(BSDIFF_BUILD_DLL)
-      #define BSDIFF_API __declspec(dllexport)
-    #elif defined(BSDIFF_DLL)
-      #define BSDIFF_API __declspec(dllimport)
-    #else
-      #define BSDIFF_API
-    #endif
-  #else
-    #define BSDIFF_API
-  #endif
+#ifdef BSDIFF_DLL
+#  ifdef _WIN32
+#    ifdef BSDIFF_EXPORTS
+#      define BSDIFF_API __declspec(dllexport)
+#    else
+#      define BSDIFF_API __declspec(dllimport)
+#    endif
+#  elif __GNUC__ >= 4
+#    define BSDIFF_API __attribute__ ((visibility("default")))
+#  else
+#    define BSDIFF_API
+#  endif
+#else
+#  define BSDIFF_API
 #endif
 
 /* return codes */
