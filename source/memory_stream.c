@@ -156,6 +156,7 @@ static int memstream_getmode(void *state)
 }
 
 int bsdiff_open_memory_stream(
+	int mode,
 	const void *buffer, 
 	size_t size,
 	struct bsdiff_stream *stream)
@@ -166,14 +167,20 @@ int bsdiff_open_memory_stream(
 	if (state == NULL)
 		return BSDIFF_OUT_OF_MEMORY;
 
-	if (buffer != NULL) {
+	if (mode == BSDIFF_MODE_READ) {
 		/* read mode */
+		if (buffer == NULL) {
+			return BSDIFF_INVALID_ARG;
+		}
 		state->mode = BSDIFF_MODE_READ;
 		state->buffer = (void*)buffer;
 		state->capacity = size;
 		state->size = size;
 	} else {
 		/* write mode */
+		if (buffer != NULL) {
+			return BSDIFF_INVALID_ARG;
+		}
 		state->mode = BSDIFF_MODE_WRITE;
 		state->size = 0;
 		if (size > 0) {

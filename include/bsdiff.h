@@ -96,6 +96,7 @@ int bsdiff_open_file_stream(
 
 BSDIFF_API
 int bsdiff_open_memory_stream(
+	int mode,
 	const void *buffer,
 	size_t size,
 	struct bsdiff_stream *stream);
