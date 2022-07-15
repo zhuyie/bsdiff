@@ -1,6 +1,6 @@
 # bsdiff
 
-bsdiff is a library for building and applying patches to binary files.
+[bsdiff](https://github.com/zhuyie/bsdiff) is a library for building and applying patches to binary files.
 
 The original algorithm and implementation was developed by Colin Percival. The algorithm is described in his (unpublished) [paper](https://www.daemonology.net/papers/bsdiff.pdf). For more information visit his website at <http://www.daemonology.net/bsdiff/>.
 
@@ -9,6 +9,51 @@ I maintain this project separately from Colin's work, with the following goals:
 * Compatible with the original patch format and can easily adapt to new patch format.
 * Support memory-based input/output stream.
 * Self-contained 3rd-party libraries, build on Windows/Linux/OSX.
+
+## API
+```c
+/**
+ * @brief
+ *    Generate a patch between two binary files.
+ * @param ctx
+ *    The context.
+ * @param oldfile
+ *    The stream of the old file.
+ * @param newfile
+ *    The stream of the new file.
+ * @param packer
+ *    The packer.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
+BSDIFF_API
+int bsdiff(
+	struct bsdiff_ctx *ctx,
+	struct bsdiff_stream *oldfile, 
+	struct bsdiff_stream *newfile, 
+	struct bsdiff_patch_packer *packer);
+
+/**
+ * @brief
+ *    Apply the patch to the old file, re-create the new file.
+ * @param ctx
+ *    The context.
+ * @param oldfile
+ *    The stream of the old file.
+ * @param newfile
+ *    The stream of the new file.
+ * @param packer
+ *    The packer.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
+BSDIFF_API
+int bspatch(
+	struct bsdiff_ctx *ctx,
+	struct bsdiff_stream *oldfile, 
+	struct bsdiff_stream *newfile,
+	struct bsdiff_patch_packer *packer);
+```
 
 ## Usage
 ```c
