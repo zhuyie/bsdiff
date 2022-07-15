@@ -162,6 +162,8 @@ int bsdiff_open_memory_stream(
 	struct bsdiff_stream *stream)
 {
 	struct memstream_state *state;
+	assert(mode >= BSDIFF_MODE_READ && mode <= BSDIFF_MODE_WRITE);
+	assert(stream);
 
 	state = malloc(sizeof(struct memstream_state));
 	if (state == NULL)

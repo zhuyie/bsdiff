@@ -1,3 +1,5 @@
+/** @file bsdiff.h */
+
 /*-
  * Copyright 2003-2005 Colin Percival
  * Copyright 2021 zhuyie
@@ -52,25 +54,28 @@ extern "C" {
 #endif
 
 /* return codes */
-#define BSDIFF_SUCCESS 0
-#define BSDIFF_ERROR 1                  /* generic error */
-#define BSDIFF_INVALID_ARG 2            /* invalid argument */
-#define BSDIFF_OUT_OF_MEMORY 3          /* out of memory */
-#define BSDIFF_FILE_ERROR 4             /* file related errors */
-#define BSDIFF_END_OF_FILE 5            /* end of file */
-#define BSDIFF_CORRUPT_PATCH 6          /* corrupt patch data */
-#define BSDIFF_SIZE_TOO_LARGE 7         /* size is too large */
+#define BSDIFF_SUCCESS          0    /* success */
+#define BSDIFF_ERROR            1    /* generic error */
+#define BSDIFF_INVALID_ARG      2    /* invalid argument */
+#define BSDIFF_OUT_OF_MEMORY    3    /* out of memory */
+#define BSDIFF_FILE_ERROR       4    /* file related errors */
+#define BSDIFF_END_OF_FILE      5    /* end of file */
+#define BSDIFF_CORRUPT_PATCH    6    /* corrupt patch data */
+#define BSDIFF_SIZE_TOO_LARGE   7    /* size is too large */
 
 /* modes */
 #define BSDIFF_MODE_READ  0
 #define BSDIFF_MODE_WRITE 1
 
-
-/* bsdiff_stream */
+/* seek origins */
 #define BSDIFF_SEEK_SET 0
 #define BSDIFF_SEEK_CUR 1
 #define BSDIFF_SEEK_END 2
 
+
+/**
+ * @brief Interface of a stream.
+ */
 struct bsdiff_stream
 {
 	void *state;
@@ -88,12 +93,39 @@ struct bsdiff_stream
 	int (*get_buffer)(void *state, const void **ppbuffer, size_t *psize);
 };
 
+/**
+ * @brief
+ *    Open a file based bsdiff_stream.
+ * @param mode
+ *    The working mode of the stream.
+ * @param filename
+ *    The name of the file.
+ * @param stream
+ *    The stream to be opened.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
 BSDIFF_API
 int bsdiff_open_file_stream(
-	const char *filename, 
 	int mode,
+	const char *filename, 
 	struct bsdiff_stream *stream);
 
+/**
+ * @brief
+ *    Open a memory based bsdiff_stream.
+ * @param mode
+ *    The working mode of the stream.
+ * @param buffer
+ *    Should be a valid buffer if mode=read, otherwise it should be NULL.
+ * @param size
+ *    Should be the corresponding length of the buffer if mode=read,
+ *    otherwise it specify the initial capacity of the stream.
+ * @param stream
+ *    The stream to be opened.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
 BSDIFF_API
 int bsdiff_open_memory_stream(
 	int mode,
@@ -101,12 +133,26 @@ int bsdiff_open_memory_stream(
 	size_t size,
 	struct bsdiff_stream *stream);
 
+/**
+ * @brief
+ *    Close a bsdiff_stream.
+ * @param stream
+ *    The stream to be closed.
+ */
 BSDIFF_API
 void bsdiff_close_stream(
 	struct bsdiff_stream *stream);
 
 
-/* bsdiff_patch_packer */
+/**
+ * @brief Interface of a patch packer.
+ * 
+ * Logically a patch consists of:
+ * - Meta info: the size of the new file;
+ * - An array of entries, each contains a header, an optional diff data, and an optional extra data;
+ *
+ * Entry header is a (diff_len, extra_len, seek_len) triple.
+ */
 struct bsdiff_patch_packer
 {
 	void *state;
@@ -134,24 +180,57 @@ struct bsdiff_patch_packer
 	int (*flush)(void *state);
 };
 
-BSDIFF_API
+/**
+ * @brief
+ *    Open a bzip2 bsdiff_patch_packer.
+ * @param mode
+ *    The working mode of the packer.
+ * @param stream
+ *    The stream which managed the reading/writing of the persistent patch data.
+ * @param packer
+ *    The packer to be opened.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
 int bsdiff_open_bz2_patch_packer(
-	struct bsdiff_stream *stream,
 	int mode,
+	struct bsdiff_stream *stream,
 	struct bsdiff_patch_packer *packer);
 
+/**
+ * @brief
+ *    Close a bsdiff_patch_packer.
+ * @param packer
+ *    The packer to be closed.
+ */
 BSDIFF_API
 void bsdiff_close_patch_packer(
 	struct bsdiff_patch_packer *packer);
 
 
-/* bsdiff_ctx */
+/**
+ * @brief Some user-defined callbacks.
+ */
 struct bsdiff_ctx
 {
 	void *opaque;
 	void (*log_error)(void *opaque, const char *errmsg);
 };
 
+/**
+ * @brief
+ *    Generate a patch between two binary files.
+ * @param ctx
+ *    The context.
+ * @param oldfile
+ *    The stream of the old file.
+ * @param newfile
+ *    The stream of the new file.
+ * @param packer
+ *    The packer.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
 BSDIFF_API
 int bsdiff(
 	struct bsdiff_ctx *ctx,
@@ -159,6 +238,20 @@ int bsdiff(
 	struct bsdiff_stream *newfile, 
 	struct bsdiff_patch_packer *packer);
 
+/**
+ * @brief
+ *    Apply the patch to the old file, re-create the new file.
+ * @param ctx
+ *    The context.
+ * @param oldfile
+ *    The stream of the old file.
+ * @param newfile
+ *    The stream of the new file.
+ * @param packer
+ *    The packer.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
 BSDIFF_API
 int bspatch(
 	struct bsdiff_ctx *ctx,

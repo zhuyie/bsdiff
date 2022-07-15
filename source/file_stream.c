@@ -75,12 +75,14 @@ static int filestream_getmode_write(void *state)
 }
 
 int bsdiff_open_file_stream(
-	const char *filename, 
 	int mode,
+	const char *filename, 
 	struct bsdiff_stream *stream)
 {
 	FILE *f;
 	assert(mode >= BSDIFF_MODE_READ && mode <= BSDIFF_MODE_WRITE);
+	assert(filename);
+	assert(stream);
 
 	f = fopen(filename, (mode == BSDIFF_MODE_WRITE) ? "wb" : "rb");
 	if (f == NULL)

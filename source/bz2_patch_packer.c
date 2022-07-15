@@ -418,13 +418,13 @@ static int bz2_patch_packer_getmode(void *state)
 }
 
 int bsdiff_open_bz2_patch_packer(
-	struct bsdiff_stream *stream,
 	int mode,
+	struct bsdiff_stream *stream,
 	struct bsdiff_patch_packer *packer)
 {
 	struct bz2_patch_packer *state;
-	assert(stream);
 	assert(mode >= BSDIFF_MODE_READ && mode <= BSDIFF_MODE_WRITE);
+	assert(stream);
 	assert(packer);
 
 	state = malloc(sizeof(struct bz2_patch_packer));
