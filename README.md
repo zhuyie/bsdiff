@@ -55,7 +55,7 @@ int bspatch(
 	struct bsdiff_patch_packer *packer);
 ```
 
-## Usage
+## Demo Usage
 ```c
 #include <stdio.h>
 #include "bsdiff.h"
@@ -73,26 +73,31 @@ int generate_patch(const char *oldname, const char *newname, const char *patchna
 	struct bsdiff_ctx ctx = { 0 };
 	struct bsdiff_patch_packer packer = { 0 };
 
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, oldname, &oldfile)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, oldname, &oldfile);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open oldfile: %s\n", oldname);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, newname, &newfile)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, newname, &newfile);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open newfile: %s\n", newname);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_WRITE, patchname, &patchfile)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_file_stream(BSDIFF_MODE_WRITE, patchname, &patchfile);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open patchfile: %s\n", patchname);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patchfile, &packer)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patchfile, &packer);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't create BZ2 patch packer\n");
 		goto cleanup;
 	}
 
 	ctx.log_error = log_error;
 
-	if ((ret = bsdiff(&ctx, &oldfile, &newfile, &packer)) != BSDIFF_SUCCESS) {
+	ret = bsdiff(&ctx, &oldfile, &newfile, &packer);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "bsdiff failed: %d\n", ret);
 		goto cleanup;
 	}
@@ -113,26 +118,31 @@ int apply_patch(const char *oldname, const char *newname, const char *patchname)
 	struct bsdiff_ctx ctx = { 0 };
 	struct bsdiff_patch_packer packer = { 0 };
 
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, oldname, &oldfile)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, oldname, &oldfile);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open oldfile: %s\n", oldname);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_WRITE, newname, &newfile)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_file_stream(BSDIFF_MODE_WRITE, newname, &newfile);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open newfile: %s\n", newname);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, patchname, &patchfile)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, patchname, &patchfile);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't open patchfile: %s\n", patchname);
 		goto cleanup;
 	}
-	if ((ret = bsdiff_open_bz2_patch_packer(BSDIFF_MODE_READ, &patchfile, &packer)) != BSDIFF_SUCCESS) {
+	ret = bsdiff_open_bz2_patch_packer(BSDIFF_MODE_READ, &patchfile, &packer);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "can't create BZ2 patch packer\n");
 		goto cleanup;
 	}
 
 	ctx.log_error = log_error;
 	
-	if ((ret = bspatch(&ctx, &oldfile, &newfile, &packer)) != BSDIFF_SUCCESS) {
+	ret = bspatch(&ctx, &oldfile, &newfile, &packer);
+	if (ret != BSDIFF_SUCCESS) {
 		fprintf(stderr, "bspatch failed: %d\n", ret);
 		goto cleanup;
 	}
