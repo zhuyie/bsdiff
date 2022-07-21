@@ -30,12 +30,12 @@ add_libdivsufsort()
 add_library(bsdiff
     source/bsdiff_private.h
     source/misc.c
-    source/file_stream.c
-    source/memory_stream.c
-    source/sub_stream.c
-    source/bz2_compress.c
-    source/bz2_decompress.c
-    source/bz2_patch_packer.c
+    source/stream_file.c
+    source/stream_memory.c
+    source/stream_sub.c
+    source/compressor_bz2.c
+    source/decompressor_bz2.c
+    source/patch_packer_bz2.c
     source/bsdiff.c
     source/bspatch.c)
 target_include_directories(bsdiff
