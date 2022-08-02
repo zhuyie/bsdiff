@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(bsdiff)
 
+include(CTest)
+
 option(BUILD_SHARED_LIBS "Set to ON to build shared libraries" OFF)
 option(BUILD_STANDALONES "Set to OFF to not build standalones" ON)
 
@@ -68,4 +70,8 @@ if (BUILD_STANDALONES)
         target_compile_definitions(bspatch_app PRIVATE "BSDIFF_DLL")
     endif()
     target_link_libraries(bspatch_app PRIVATE bsdiff)
+endif()
+
+if (BUILD_TESTING)
+    add_subdirectory(testdata)
 endif()
