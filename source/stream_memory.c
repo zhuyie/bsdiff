@@ -45,24 +45,24 @@ static int memstream_tell(void *state, int64_t *position)
 
 static int memstream_read(void *state, void *buffer, size_t size, size_t *readed)
 {
-        struct memstream_state *s = (struct memstream_state*)state;
+	struct memstream_state *s = (struct memstream_state*)state;
 
-        assert(s->mode == BSDIFF_MODE_READ);
+	assert(s->mode == BSDIFF_MODE_READ);
 
-        *readed = 0;
+	*readed = 0;
 
-        /* The ANSI standard requires a return value of 0 for a size of 0. */
-        if (size == 0)
-                return BSDIFF_SUCCESS;
+	/* The ANSI standard requires a return value of 0 for a size of 0. */
+	if (size == 0)
+		return BSDIFF_SUCCESS;
 
-        size_t available_bytes = s->size - s->pos;
-        *readed = (size > available_bytes) ? available_bytes : size;
+	size_t available_bytes = s->size - s->pos;
+	*readed = (size > available_bytes) ? available_bytes : size;
 
-        memcpy(buffer, (uint8_t*)s->buffer + s->pos, *readed);
+	memcpy(buffer, (uint8_t*)s->buffer + s->pos, *readed);
 
-        s->pos += *readed;
+	s->pos += *readed;
 
-        return (*readed < size) ? BSDIFF_END_OF_FILE : BSDIFF_SUCCESS;
+	return (*readed < size) ? BSDIFF_END_OF_FILE : BSDIFF_SUCCESS;
 }
 
 static size_t calc_new_capacity(size_t current, size_t required)
