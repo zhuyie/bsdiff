@@ -192,6 +192,7 @@ struct bsdiff_patch_packer
  * @return
  *    BSDIFF_SUCCESS if no error.
  */
+BSDIFF_API
 int bsdiff_open_bz2_patch_packer(
 	int mode,
 	struct bsdiff_stream *stream,
