@@ -11,16 +11,18 @@ int bsdiff_create_bz2_decompressor(struct bsdiff_decompressor *dec);
 static int64_t offtin(uint8_t *buf)
 {
 	int64_t y;
+	
+	// Reconstruct the 63-bit value from little-endian bytes
+	y = ((int64_t)buf[0]) |
+		((int64_t)buf[1] << 8) |
+		((int64_t)buf[2] << 16) |
+		((int64_t)buf[3] << 24) |
+		((int64_t)buf[4] << 32) |
+		((int64_t)buf[5] << 40) |
+		((int64_t)buf[6] << 48) |
+		(((int64_t)(buf[7] & 0x7F)) << 56);
 
-	y = buf[7] & 0x7F;
-	y = y * 256; y += buf[6];
-	y = y * 256; y += buf[5];
-	y = y * 256; y += buf[4];
-	y = y * 256; y += buf[3];
-	y = y * 256; y += buf[2];
-	y = y * 256; y += buf[1];
-	y = y * 256; y += buf[0];
-
+	// Apply sign if negative
 	if (buf[7] & 0x80)
 		y = -y;
 
@@ -29,24 +31,26 @@ static int64_t offtin(uint8_t *buf)
 
 static void offtout(int64_t x, uint8_t *buf)
 {
-	int64_t y;
+	uint64_t y;
 
+	if (x < 0) {
+		y = (uint64_t)(-x);
+	} else {
+		y = (uint64_t)x;
+	}
+
+	// Extract bytes in little-endian order using bit shifts
+	buf[0] = (uint8_t)(y);
+	buf[1] = (uint8_t)(y >> 8);
+	buf[2] = (uint8_t)(y >> 16);
+	buf[3] = (uint8_t)(y >> 24);
+	buf[4] = (uint8_t)(y >> 32);
+	buf[5] = (uint8_t)(y >> 40);
+	buf[6] = (uint8_t)(y >> 48);
 	if (x < 0)
-		y = -x;
+		buf[7] = (uint8_t)((y >> 56) | 0x80);
 	else
-		y = x;
-
-				 buf[0] = y % 256; y -= buf[0];
-	y = y / 256; buf[1] = y % 256; y -= buf[1];
-	y = y / 256; buf[2] = y % 256; y -= buf[2];
-	y = y / 256; buf[3] = y % 256; y -= buf[3];
-	y = y / 256; buf[4] = y % 256; y -= buf[4];
-	y = y / 256; buf[5] = y % 256; y -= buf[5];
-	y = y / 256; buf[6] = y % 256; y -= buf[6];
-	y = y / 256; buf[7] = y % 256;
-
-	if (x < 0)
-		buf[7] |= 0x80;
+		buf[7] = (uint8_t)(y >> 56);
 }
 
 struct bz2_patch_packer
