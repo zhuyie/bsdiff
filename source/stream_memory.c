@@ -171,6 +171,7 @@ int bsdiff_open_memory_stream(
 	if (mode == BSDIFF_MODE_READ) {
 		/* read mode */
 		if (buffer == NULL) {
+			free(state);
 			return BSDIFF_INVALID_ARG;
 		}
 		state->mode = BSDIFF_MODE_READ;
@@ -180,6 +181,7 @@ int bsdiff_open_memory_stream(
 	} else {
 		/* write mode */
 		if (buffer != NULL) {
+			free(state);
 			return BSDIFF_INVALID_ARG;
 		}
 		state->mode = BSDIFF_MODE_WRITE;
