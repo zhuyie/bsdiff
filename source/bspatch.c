@@ -63,8 +63,11 @@ int bspatch(
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
-	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
+	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
+		(cb != (size_t)oldsize))
+	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
+	}
 
 	if (packer->read_new_size(packer->state, &newsize) != BSDIFF_SUCCESS)
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read new size from patch_packer");

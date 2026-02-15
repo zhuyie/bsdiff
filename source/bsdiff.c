@@ -146,8 +146,11 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
 	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
-	if (oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS)
+	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
+		(cb != (size_t)oldsize))
+	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
+	}
 
 	/* Construct the suffix array */
 	bufsize = (oldsize + 1) * sizeof(int64_t);
@@ -185,8 +188,11 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
 	if ((new = malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
-	if (newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS)
+	if ((newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS) ||
+		(cb != (size_t)newsize))
+	{
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read newfile");
+	}
 
 	if ((db = malloc(DB_BUF_LEN)) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for db");
