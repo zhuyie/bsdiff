@@ -187,6 +187,8 @@ struct bsdiff_patch_packer
  *    The working mode of the packer.
  * @param stream
  *    The stream which managed the reading/writing of the persistent patch data.
+ *    The stream is borrowed by the packer and is still owned by the caller.
+ *    Caller is responsible for closing the stream.
  * @param packer
  *    The packer to be opened.
  * @return

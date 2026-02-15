@@ -410,8 +410,6 @@ static void bz2_patch_packer_close(void *state)
 		free(packer->eb);
 	}
 
-	bsdiff_close_stream(packer->stream);
-
 	free(packer);
 }
 
