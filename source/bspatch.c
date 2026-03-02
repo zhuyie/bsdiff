@@ -88,7 +88,7 @@ int bspatch(
 		/* Sanity-check */
 		if ((ctrl[0] < 0) || (ctrl[1] < 0))
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
-		if (newpos + ctrl[0] > newsize)
+		if (ctrl[0] > newsize - newpos)
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
 		/* Read diff string */
@@ -109,7 +109,7 @@ int bspatch(
 		oldpos += ctrl[0];
 
 		/* Sanity-check */
-		if (newpos + ctrl[1] > newsize)
+		if (ctrl[1] > newsize - newpos)
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
 		/* Read extra string */
