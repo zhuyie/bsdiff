@@ -49,9 +49,11 @@ int bspatch(
 	int64_t ctrl[3];
 	int64_t i;
 
-	assert(oldfile->get_mode(oldfile->state) == BSDIFF_MODE_READ);
+	if (ctx == NULL || oldfile == NULL || newfile == NULL || packer == NULL) return BSDIFF_INVALID_ARG;
+
+assert(oldfile->get_mode(oldfile->state) == BSDIFF_MODE_READ);
 	assert(newfile->get_mode(newfile->state) == BSDIFF_MODE_WRITE);
-	assert(packer->get_mode(packer->state) == BSDIFF_MODE_READ);
+	
 
 	if ((oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
 		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
