@@ -10,6 +10,18 @@ I maintain this project separately from Colin's work, with the following goals:
 * Support memory-based input/output stream.
 * Self-contained 3rd-party libraries, build on Windows/Linux/OSX.
 
+## Build and Test
+
+This project uses [CMake](https://cmake.org/) for building and testing.
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+ctest
+```
+
 ## API
 ```c
 /**
