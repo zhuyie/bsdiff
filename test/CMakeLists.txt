@@ -1,6 +1,8 @@
 add_executable(
     test_bsdiff_unit
     test_stream_memory.cpp
+    test_bsdiff_api.cpp
+    test_bspatch_api.cpp
 )
 
 target_link_libraries(
