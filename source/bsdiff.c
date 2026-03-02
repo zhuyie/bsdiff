@@ -130,9 +130,10 @@ int bsdiff(
 	int64_t bufsize;
 	uint8_t *SA = NULL;
 
-	if (ctx == NULL || oldfile == NULL || newfile == NULL || packer == NULL) return BSDIFF_INVALID_ARG;
+	if (ctx == NULL || oldfile == NULL || newfile == NULL || packer == NULL)
+		return BSDIFF_INVALID_ARG;
 
-assert(oldfile->get_mode(oldfile->state) == BSDIFF_MODE_READ);
+	assert(oldfile->get_mode(oldfile->state) == BSDIFF_MODE_READ);
 	assert(newfile->get_mode(newfile->state) == BSDIFF_MODE_READ);
 	assert(packer->get_mode(packer->state) == BSDIFF_MODE_WRITE);
 
