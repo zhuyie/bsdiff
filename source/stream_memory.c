@@ -56,13 +56,17 @@ static int memstream_read(void *state, void *buffer, size_t size, size_t *readed
 		return BSDIFF_SUCCESS;
 
 	size_t available_bytes = s->size - s->pos;
+
+	if (available_bytes == 0)
+		return BSDIFF_END_OF_FILE;
+
 	*readed = (size > available_bytes) ? available_bytes : size;
 
 	memcpy(buffer, (uint8_t*)s->buffer + s->pos, *readed);
 
 	s->pos += *readed;
 
-	return (*readed < size) ? BSDIFF_END_OF_FILE : BSDIFF_SUCCESS;
+	return BSDIFF_SUCCESS;
 }
 
 static size_t calc_new_capacity(size_t current, size_t required)
