@@ -8,38 +8,23 @@
 int bsdiff_create_zstd_compressor(struct bsdiff_compressor *enc);
 int bsdiff_create_zstd_decompressor(struct bsdiff_decompressor *dec);
 
-static int64_t offtin(uint8_t *buf)
+static int64_t zstd_read_int64(uint8_t *buf)
 {
-	int64_t y;
-
-	/* Reconstruct the 63-bit value from little-endian bytes */
-	y = ((int64_t)buf[0]) |
-	    ((int64_t)buf[1] << 8) |
-	    ((int64_t)buf[2] << 16) |
-	    ((int64_t)buf[3] << 24) |
-	    ((int64_t)buf[4] << 32) |
-	    ((int64_t)buf[5] << 40) |
-	    ((int64_t)buf[6] << 48) |
-	    (((int64_t)(buf[7] & 0x7F)) << 56);
-
-	/* Apply sign if negative */
-	if (buf[7] & 0x80)
-		y = -y;
-
-	return y;
+	uint64_t y = ((uint64_t)buf[0]) |
+	             ((uint64_t)buf[1] << 8) |
+	             ((uint64_t)buf[2] << 16) |
+	             ((uint64_t)buf[3] << 24) |
+	             ((uint64_t)buf[4] << 32) |
+	             ((uint64_t)buf[5] << 40) |
+	             ((uint64_t)buf[6] << 48) |
+	             ((uint64_t)buf[7] << 56);
+	return (int64_t)((y >> 1) ^ (0ULL - (y & 1)));
 }
 
-static void offtout(int64_t x, uint8_t *buf)
+static void zstd_write_int64(int64_t x, uint8_t *buf)
 {
-	uint64_t y;
+	uint64_t y = ((uint64_t)x << 1) ^ (uint64_t)((x < 0) ? ~0ULL : 0ULL);
 
-	if (x < 0) {
-		y = (uint64_t)(-x);
-	} else {
-		y = (uint64_t)x;
-	}
-
-	/* Extract bytes in little-endian order using bit shifts */
 	buf[0] = (uint8_t)(y);
 	buf[1] = (uint8_t)(y >> 8);
 	buf[2] = (uint8_t)(y >> 16);
@@ -47,10 +32,7 @@ static void offtout(int64_t x, uint8_t *buf)
 	buf[4] = (uint8_t)(y >> 32);
 	buf[5] = (uint8_t)(y >> 40);
 	buf[6] = (uint8_t)(y >> 48);
-	if (x < 0)
-		buf[7] = (uint8_t)((y >> 56) | 0x80);
-	else
-		buf[7] = (uint8_t)(y >> 56);
+	buf[7] = (uint8_t)(y >> 56);
 }
 
 struct zstd_patch_packer
@@ -100,9 +82,9 @@ static int zstd_patch_packer_read_new_size(void *state, int64_t *size)
 		return BSDIFF_CORRUPT_PATCH;
 
 	/* Read lengths from header */
-	ctrllen = offtin(header + 8);
-	datalen = offtin(header + 16);
-	newsize = offtin(header + 24);
+	ctrllen = zstd_read_int64(header + 8);
+	datalen = zstd_read_int64(header + 16);
+	newsize = zstd_read_int64(header + 24);
 	if ((ctrllen < 0) || (datalen < 0) || (newsize < 0))
 		return BSDIFF_CORRUPT_PATCH;
 
@@ -168,9 +150,9 @@ static int zstd_patch_packer_read_entry_header(void *state, int64_t *diff,
 	ret = packer->cpf_dec.read(packer->cpf_dec.state, buf, 24, &cb);
 	if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != 24))
 		return BSDIFF_ERROR;
-	packer->header_x = offtin(buf);
-	packer->header_y = offtin(buf + 8);
-	packer->header_z = offtin(buf + 16);
+	packer->header_x = zstd_read_int64(buf);
+	packer->header_y = zstd_read_int64(buf + 8);
+	packer->header_z = zstd_read_int64(buf + 16);
 
 	*diff = packer->header_x;
 	*extra = packer->header_y;
@@ -281,9 +263,9 @@ static int zstd_patch_packer_write_entry_header(void *state, int64_t diff,
 	packer->header_z = seek;
 
 	/* Write a triple */
-	offtout(packer->header_x, buf);
-	offtout(packer->header_y, buf + 8);
-	offtout(packer->header_z, buf + 16);
+	zstd_write_int64(packer->header_x, buf);
+	zstd_write_int64(packer->header_y, buf + 8);
+	zstd_write_int64(packer->header_z, buf + 16);
 	ret = packer->enc.write(packer->enc.state, buf, 24);
 	if (ret != BSDIFF_SUCCESS)
 		return ret;
@@ -339,7 +321,7 @@ static int zstd_patch_packer_flush(void *state)
 
 	memset(header, 0, sizeof(header));
 	memcpy(header, "ZSTDDIFF", 8);
-	offtout(packer->new_size, header + 24);
+	zstd_write_int64(packer->new_size, header + 24);
 
 	/* Flush ctrl data */
 	if (packer->enc.flush(packer->enc.state) != BSDIFF_SUCCESS)
@@ -349,7 +331,7 @@ static int zstd_patch_packer_flush(void *state)
 	/* Compute size of compressed ctrl data */
 	if (packer->stream->tell(packer->stream->state, &patchsize) != BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
-	offtout(patchsize - 32, header + 8);
+	zstd_write_int64(patchsize - 32, header + 8);
 
 	/* Write compressed diff data */
 	if ((bsdiff_create_zstd_compressor(&(packer->enc)) != BSDIFF_SUCCESS) ||
@@ -367,7 +349,7 @@ static int zstd_patch_packer_flush(void *state)
 	if (packer->stream->tell(packer->stream->state, &patchsize2) !=
 	    BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
-	offtout(patchsize2 - patchsize, header + 16);
+	zstd_write_int64(patchsize2 - patchsize, header + 16);
 
 	/* Write compressed extra data */
 	if ((bsdiff_create_zstd_compressor(&(packer->enc)) != BSDIFF_SUCCESS) ||
