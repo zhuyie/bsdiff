@@ -53,59 +53,36 @@ static int64_t matchlen(uint8_t *old, int64_t oldsize, uint8_t *new, int64_t new
 	return i;
 }
 
-static int64_t search32(uint8_t *buf, uint8_t *old, int64_t oldsize,
-		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos)
-{
-	int64_t x, y;
-	int32_t *SA = (int32_t*)buf;
-
-	if (en-st < 2) {
-		x = matchlen(old+SA[st], oldsize-SA[st], new, newsize);
-		y = matchlen(old+SA[en], oldsize-SA[en], new, newsize);
-
-		if (x > y) {
-			*pos = SA[st];
-			return x;
-		} else {
-			*pos = SA[en];
-			return y;
-		}
-	};
-
-	x = st+(en-st)/2;
-	if (memcmp(old+SA[x], new, (size_t)MIN(oldsize-SA[x], newsize)) < 0) {
-		return search32(buf, old, oldsize, new, newsize, x, en, pos);
-	} else {
-		return search32(buf, old, oldsize, new, newsize, st, x, pos);
-	};
+#define DEFINE_SEARCH(suffix, type) \
+static int64_t search##suffix(uint8_t *buf, uint8_t *old, int64_t oldsize, \
+		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos) \
+{ \
+	int64_t x, y; \
+	type *SA = (type *)buf; \
+ \
+	while (en - st >= 2) { \
+		x = st + (en - st) / 2; \
+		if (memcmp(old + SA[x], new, (size_t)MIN(oldsize - SA[x], newsize)) < 0) { \
+			st = x; \
+		} else { \
+			en = x; \
+		} \
+	} \
+ \
+	x = matchlen(old + SA[st], oldsize - SA[st], new, newsize); \
+	y = matchlen(old + SA[en], oldsize - SA[en], new, newsize); \
+ \
+	if (x > y) { \
+		*pos = SA[st]; \
+		return x; \
+	} else { \
+		*pos = SA[en]; \
+		return y; \
+	} \
 }
 
-static int64_t search64(uint8_t *buf, uint8_t *old, int64_t oldsize,
-		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos)
-{
-	int64_t x, y;
-	int64_t *SA = (int64_t*)buf;
-
-	if (en-st < 2) {
-		x = matchlen(old+SA[st], oldsize-SA[st], new, newsize);
-		y = matchlen(old+SA[en], oldsize-SA[en], new, newsize);
-
-		if (x > y) {
-			*pos = SA[st];
-			return x;
-		} else {
-			*pos = SA[en];
-			return y;
-		}
-	};
-
-	x = st+(en-st)/2;
-	if (memcmp(old+SA[x], new, (size_t)MIN(oldsize-SA[x], newsize)) < 0) {
-		return search64(buf, old, oldsize, new, newsize, x, en, pos);
-	} else {
-		return search64(buf, old, oldsize, new, newsize, st, x, pos);
-	};
-}
+DEFINE_SEARCH(32, int32_t)
+DEFINE_SEARCH(64, int64_t)
 
 int bsdiff(
 	struct bsdiff_ctx *ctx,
