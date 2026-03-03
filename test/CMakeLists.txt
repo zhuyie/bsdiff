@@ -18,3 +18,20 @@ target_include_directories(
 
 include(GoogleTest)
 gtest_discover_tests(test_bsdiff_unit)
+
+# Benchmark test executable
+add_executable(
+    test_bsdiff_benchmark
+    test_bsdiff_benchmark.cpp
+)
+
+target_link_libraries(
+    test_bsdiff_benchmark
+    benchmark::benchmark
+    bsdiff
+)
+
+target_include_directories(
+    test_bsdiff_benchmark
+    PRIVATE "../include"
+)
