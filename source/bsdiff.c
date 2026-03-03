@@ -53,36 +53,67 @@ static int64_t matchlen(uint8_t *old, int64_t oldsize, uint8_t *new, int64_t new
 	return i;
 }
 
-#define DEFINE_SEARCH(suffix, type) \
-static int64_t search##suffix(uint8_t *buf, uint8_t *old, int64_t oldsize, \
-		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos) \
-{ \
-	int64_t x, y; \
-	type *SA = (type *)buf; \
- \
-	while (en - st >= 2) { \
-		x = st + (en - st) / 2; \
-		if (memcmp(old + SA[x], new, (size_t)MIN(oldsize - SA[x], newsize)) < 0) { \
-			st = x; \
-		} else { \
-			en = x; \
-		} \
-	} \
- \
-	x = matchlen(old + SA[st], oldsize - SA[st], new, newsize); \
-	y = matchlen(old + SA[en], oldsize - SA[en], new, newsize); \
- \
-	if (x > y) { \
-		*pos = SA[st]; \
-		return x; \
-	} else { \
-		*pos = SA[en]; \
-		return y; \
-	} \
+static int64_t search32(uint8_t *buf, uint8_t *old, int64_t oldsize,
+		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos)
+{
+	int32_t *SA = (int32_t *)buf;
+	int64_t x, min_lcp, lcp_x, cmp_len;
+	int64_t lcp_st = matchlen(old + SA[st], oldsize - SA[st], new, newsize);
+	int64_t lcp_en = matchlen(old + SA[en], oldsize - SA[en], new, newsize);
+
+	while (en - st >= 2) {
+		x = st + (en - st) / 2;
+		min_lcp = MIN(lcp_st, lcp_en);
+		lcp_x = min_lcp + matchlen(old + SA[x] + min_lcp, oldsize - SA[x] - min_lcp, new + min_lcp, newsize - min_lcp);
+		cmp_len = MIN(oldsize - SA[x], newsize);
+		if (lcp_x < cmp_len && old[SA[x] + lcp_x] < new[lcp_x]) {
+			st = x;
+			lcp_st = lcp_x;
+		} else {
+			en = x;
+			lcp_en = lcp_x;
+		}
+	}
+
+	if (lcp_st > lcp_en) {
+		*pos = SA[st];
+		return lcp_st;
+	} else {
+		*pos = SA[en];
+		return lcp_en;
+	}
 }
 
-DEFINE_SEARCH(32, int32_t)
-DEFINE_SEARCH(64, int64_t)
+static int64_t search64(uint8_t *buf, uint8_t *old, int64_t oldsize,
+		uint8_t *new, int64_t newsize, int64_t st, int64_t en, int64_t *pos)
+{
+	int64_t *SA = (int64_t *)buf;
+	int64_t x, min_lcp, lcp_x, cmp_len;
+	int64_t lcp_st = matchlen(old + SA[st], oldsize - SA[st], new, newsize);
+	int64_t lcp_en = matchlen(old + SA[en], oldsize - SA[en], new, newsize);
+
+	while (en - st >= 2) {
+		x = st + (en - st) / 2;
+		min_lcp = MIN(lcp_st, lcp_en);
+		lcp_x = min_lcp + matchlen(old + SA[x] + min_lcp, oldsize - SA[x] - min_lcp, new + min_lcp, newsize - min_lcp);
+		cmp_len = MIN(oldsize - SA[x], newsize);
+		if (lcp_x < cmp_len && old[SA[x] + lcp_x] < new[lcp_x]) {
+			st = x;
+			lcp_st = lcp_x;
+		} else {
+			en = x;
+			lcp_en = lcp_x;
+		}
+	}
+
+	if (lcp_st > lcp_en) {
+		*pos = SA[st];
+		return lcp_st;
+	} else {
+		*pos = SA[en];
+		return lcp_en;
+	}
+}
 
 int bsdiff(
 	struct bsdiff_ctx *ctx,
