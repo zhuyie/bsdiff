@@ -28,6 +28,20 @@ endfunction()
 
 add_libdivsufsort()
 
+# Zstd
+include(FetchContent)
+FetchContent_Declare(
+  zstd
+  GIT_REPOSITORY https://github.com/facebook/zstd.git
+  GIT_TAG        v1.5.5
+  SOURCE_SUBDIR  build/cmake
+)
+# Disable zstd tests and programs to speed up the build
+set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "Disable ZSTD programs" FORCE)
+set(ZSTD_BUILD_TESTS OFF CACHE BOOL "Disable ZSTD tests" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "Disable ZSTD shared lib" FORCE)
+FetchContent_MakeAvailable(zstd)
+
 # bsdiff
 add_library(bsdiff
     source/bsdiff_private.h
@@ -38,11 +52,15 @@ add_library(bsdiff
     source/compressor_bz2.c
     source/decompressor_bz2.c
     source/patch_packer_bz2.c
+    source/compressor_zstd.c
+    source/decompressor_zstd.c
+    source/patch_packer_zstd.c
     source/bsdiff.c
     source/bspatch.c)
 target_include_directories(bsdiff
     PRIVATE "3rdparty/bzip2"
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libdivsufsort/include"
+    PRIVATE "${zstd_SOURCE_DIR}/lib"
     PRIVATE "include")
 if (BUILD_SHARED_LIBS)
     target_compile_definitions(bsdiff PRIVATE "BSDIFF_DLL" "BSDIFF_EXPORTS")
@@ -50,7 +68,7 @@ endif()
 if (MSVC)
     target_compile_definitions(bsdiff PRIVATE "_CRT_SECURE_NO_WARNINGS")
 endif()
-target_link_libraries(bsdiff PRIVATE bzip2 PRIVATE divsufsort PRIVATE divsufsort64)
+target_link_libraries(bsdiff PRIVATE bzip2 PRIVATE divsufsort PRIVATE divsufsort64 PRIVATE libzstd_static)
 
 if (BUILD_STANDALONES)
     # bsdiff_app

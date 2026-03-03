@@ -20,8 +20,10 @@ static std::vector<uint8_t> ReadFileToMemory(const std::string &filepath) {
 }
 
 // Benchmark bsdiff functionality
+enum class Compression { BZ2, ZSTD };
+
 static void BM_Bsdiff(benchmark::State &state, const std::string &old_path,
-                      const std::string &new_path) {
+                      const std::string &new_path, Compression comp) {
   std::vector<uint8_t> old_data = ReadFileToMemory(old_path);
   std::vector<uint8_t> new_data = ReadFileToMemory(new_path);
 
@@ -45,7 +47,11 @@ static void BM_Bsdiff(benchmark::State &state, const std::string &old_path,
     // Write patch to memory
     bsdiff_open_memory_stream(BSDIFF_MODE_WRITE, nullptr,
                               new_data.size() + 1024, &patch_stream);
-    bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patch_stream, &packer);
+    if (comp == Compression::ZSTD) {
+      bsdiff_open_zstd_patch_packer(BSDIFF_MODE_WRITE, &patch_stream, &packer);
+    } else {
+      bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patch_stream, &packer);
+    }
 
     struct bsdiff_ctx ctx = {0};
 
@@ -66,7 +72,7 @@ static void BM_Bsdiff(benchmark::State &state, const std::string &old_path,
 
 // Benchmark bspatch functionality
 static void BM_Bspatch(benchmark::State &state, const std::string &old_path,
-                       const std::string &new_path) {
+                       const std::string &new_path, Compression comp) {
   std::vector<uint8_t> old_data = ReadFileToMemory(old_path);
   std::vector<uint8_t> new_data = ReadFileToMemory(new_path);
 
@@ -88,7 +94,11 @@ static void BM_Bspatch(benchmark::State &state, const std::string &old_path,
                             &new_stream);
   bsdiff_open_memory_stream(BSDIFF_MODE_WRITE, nullptr, new_data.size() + 1024,
                             &patch_stream);
-  bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patch_stream, &packer);
+  if (comp == Compression::ZSTD) {
+    bsdiff_open_zstd_patch_packer(BSDIFF_MODE_WRITE, &patch_stream, &packer);
+  } else {
+    bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patch_stream, &packer);
+  }
 
   struct bsdiff_ctx ctx = {0};
   bsdiff(&ctx, &old_stream, &new_stream, &packer);
@@ -120,7 +130,13 @@ static void BM_Bspatch(benchmark::State &state, const std::string &old_path,
     bsdiff_open_memory_stream(BSDIFF_MODE_WRITE, nullptr, new_data.size(),
                               &b_new_stream);
 
-    bsdiff_open_bz2_patch_packer(BSDIFF_MODE_READ, &b_patch_stream, &b_packer);
+    if (comp == Compression::ZSTD) {
+      bsdiff_open_zstd_patch_packer(BSDIFF_MODE_READ, &b_patch_stream,
+                                    &b_packer);
+    } else {
+      bsdiff_open_bz2_patch_packer(BSDIFF_MODE_READ, &b_patch_stream,
+                                   &b_packer);
+    }
 
     int ret = bspatch(&ctx, &b_old_stream, &b_new_stream, &b_packer);
     if (ret != BSDIFF_SUCCESS) {
@@ -137,38 +153,80 @@ static void BM_Bspatch(benchmark::State &state, const std::string &old_path,
                           (old_data.size() + new_data.size()));
 }
 
-// Bsdiff benchmarks
-static void BM_Bsdiff_Simple(benchmark::State &state) {
-  BM_Bsdiff(state, "testdata/simple/v1", "testdata/simple/v2");
+// Bsdiff benchmarks (BZ2)
+static void BM_Bsdiff_Simple_BZ2(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/simple/v1", "testdata/simple/v2",
+            Compression::BZ2);
 }
-BENCHMARK(BM_Bsdiff_Simple);
+BENCHMARK(BM_Bsdiff_Simple_BZ2);
 
-static void BM_Bsdiff_Putty(benchmark::State &state) {
-  BM_Bsdiff(state, "testdata/putty/0.75.exe", "testdata/putty/0.76.exe");
+static void BM_Bsdiff_Putty_BZ2(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/putty/0.75.exe", "testdata/putty/0.76.exe",
+            Compression::BZ2);
 }
-BENCHMARK(BM_Bsdiff_Putty);
+BENCHMARK(BM_Bsdiff_Putty_BZ2);
 
-static void BM_Bsdiff_WinMerge(benchmark::State &state) {
+static void BM_Bsdiff_WinMerge_BZ2(benchmark::State &state) {
   BM_Bsdiff(state, "testdata/WinMerge/2.16.14.exe",
-            "testdata/WinMerge/2.16.16.exe");
+            "testdata/WinMerge/2.16.16.exe", Compression::BZ2);
 }
-BENCHMARK(BM_Bsdiff_WinMerge);
+BENCHMARK(BM_Bsdiff_WinMerge_BZ2);
 
-// Bspatch benchmarks
-static void BM_Bspatch_Simple(benchmark::State &state) {
-  BM_Bspatch(state, "testdata/simple/v1", "testdata/simple/v2");
+// Bsdiff benchmarks (ZSTD)
+static void BM_Bsdiff_Simple_ZSTD(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/simple/v1", "testdata/simple/v2",
+            Compression::ZSTD);
 }
-BENCHMARK(BM_Bspatch_Simple);
+BENCHMARK(BM_Bsdiff_Simple_ZSTD);
 
-static void BM_Bspatch_Putty(benchmark::State &state) {
-  BM_Bspatch(state, "testdata/putty/0.75.exe", "testdata/putty/0.76.exe");
+static void BM_Bsdiff_Putty_ZSTD(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/putty/0.75.exe", "testdata/putty/0.76.exe",
+            Compression::ZSTD);
 }
-BENCHMARK(BM_Bspatch_Putty);
+BENCHMARK(BM_Bsdiff_Putty_ZSTD);
 
-static void BM_Bspatch_WinMerge(benchmark::State &state) {
+static void BM_Bsdiff_WinMerge_ZSTD(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/WinMerge/2.16.14.exe",
+            "testdata/WinMerge/2.16.16.exe", Compression::ZSTD);
+}
+BENCHMARK(BM_Bsdiff_WinMerge_ZSTD);
+
+// Bspatch benchmarks (BZ2)
+static void BM_Bspatch_Simple_BZ2(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/simple/v1", "testdata/simple/v2",
+             Compression::BZ2);
+}
+BENCHMARK(BM_Bspatch_Simple_BZ2);
+
+static void BM_Bspatch_Putty_BZ2(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/putty/0.75.exe", "testdata/putty/0.76.exe",
+             Compression::BZ2);
+}
+BENCHMARK(BM_Bspatch_Putty_BZ2);
+
+static void BM_Bspatch_WinMerge_BZ2(benchmark::State &state) {
   BM_Bspatch(state, "testdata/WinMerge/2.16.14.exe",
-             "testdata/WinMerge/2.16.16.exe");
+             "testdata/WinMerge/2.16.16.exe", Compression::BZ2);
 }
-BENCHMARK(BM_Bspatch_WinMerge);
+BENCHMARK(BM_Bspatch_WinMerge_BZ2);
+
+// Bspatch benchmarks (ZSTD)
+static void BM_Bspatch_Simple_ZSTD(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/simple/v1", "testdata/simple/v2",
+             Compression::ZSTD);
+}
+BENCHMARK(BM_Bspatch_Simple_ZSTD);
+
+static void BM_Bspatch_Putty_ZSTD(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/putty/0.75.exe", "testdata/putty/0.76.exe",
+             Compression::ZSTD);
+}
+BENCHMARK(BM_Bspatch_Putty_ZSTD);
+
+static void BM_Bspatch_WinMerge_ZSTD(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/WinMerge/2.16.14.exe",
+             "testdata/WinMerge/2.16.16.exe", Compression::ZSTD);
+}
+BENCHMARK(BM_Bspatch_WinMerge_ZSTD);
 
 BENCHMARK_MAIN();
