@@ -29,18 +29,14 @@ endfunction()
 add_libdivsufsort()
 
 # Zstd
-include(FetchContent)
-FetchContent_Declare(
-  zstd
-  GIT_REPOSITORY https://github.com/facebook/zstd.git
-  GIT_TAG        v1.5.5
-  SOURCE_SUBDIR  build/cmake
-)
-# Disable zstd tests and programs to speed up the build
-set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "Disable ZSTD programs" FORCE)
-set(ZSTD_BUILD_TESTS OFF CACHE BOOL "Disable ZSTD tests" FORCE)
-set(ZSTD_BUILD_SHARED OFF CACHE BOOL "Disable ZSTD shared lib" FORCE)
-FetchContent_MakeAvailable(zstd)
+function(add_zstd)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(ZSTD_BUILD_PROGRAMS OFF)
+    set(ZSTD_BUILD_TESTS    OFF)
+    set(ZSTD_BUILD_SHARED   OFF)
+    add_subdirectory(3rdparty/zstd/build/cmake)
+endfunction()
+add_zstd()
 
 # bsdiff
 add_library(bsdiff
@@ -60,7 +56,7 @@ add_library(bsdiff
 target_include_directories(bsdiff
     PRIVATE "3rdparty/bzip2"
     PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/libdivsufsort/include"
-    PRIVATE "${zstd_SOURCE_DIR}/lib"
+    PRIVATE "3rdparty/zstd/lib"
     PRIVATE "include")
 if (BUILD_SHARED_LIBS)
     target_compile_definitions(bsdiff PRIVATE "BSDIFF_DLL" "BSDIFF_EXPORTS")
