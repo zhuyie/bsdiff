@@ -101,8 +101,9 @@ int generate_patch(const char *oldname, const char *newname, const char *patchna
 		goto cleanup;
 	}
 	ret = bsdiff_open_bz2_patch_packer(BSDIFF_MODE_WRITE, &patchfile, &packer);
+	// ret = bsdiff_open_zstd_patch_packer(BSDIFF_MODE_WRITE, &patchfile, &packer);
 	if (ret != BSDIFF_SUCCESS) {
-		fprintf(stderr, "can't create BZ2 patch packer\n");
+		fprintf(stderr, "can't create patch packer\n");
 		goto cleanup;
 	}
 
@@ -146,8 +147,9 @@ int apply_patch(const char *oldname, const char *newname, const char *patchname)
 		goto cleanup;
 	}
 	ret = bsdiff_open_bz2_patch_packer(BSDIFF_MODE_READ, &patchfile, &packer);
+	// ret = bsdiff_open_zstd_patch_packer(BSDIFF_MODE_READ, &patchfile, &packer);
 	if (ret != BSDIFF_SUCCESS) {
-		fprintf(stderr, "can't create BZ2 patch packer\n");
+		fprintf(stderr, "can't create patch packer\n");
 		goto cleanup;
 	}
 
