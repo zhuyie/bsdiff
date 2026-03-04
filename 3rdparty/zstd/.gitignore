@@ -1,0 +1,3 @@
+# Un-ignore the build/ directory under zstd, which contains the CMake build files.
+# The root .gitignore has a "build/" rule that would otherwise exclude it.
+!build/
