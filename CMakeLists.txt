@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 
+# Allow 3rdparty CMakeLists.txt files with older cmake_minimum_required versions
+# to work with newer CMake without modifying them.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 project(bsdiff C CXX)
 
 include(CTest)
