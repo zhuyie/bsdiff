@@ -5,6 +5,9 @@ _deps/
 bin/
 obj/
 
+# CMake GTest test-discovery cache (generated when tests are run from project root)
+cmake_test_discovery_*.json
+
 # IDE files
 .vscode/
 *.swp
