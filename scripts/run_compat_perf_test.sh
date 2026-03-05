@@ -101,6 +101,7 @@ cases = [
     ("simple",   f"{testdata}/simple/v1",           f"{testdata}/simple/v2"),
     ("putty",    f"{testdata}/putty/0.75.exe",       f"{testdata}/putty/0.76.exe"),
     ("WinMerge", f"{testdata}/WinMerge/2.16.14.exe", f"{testdata}/WinMerge/2.16.16.exe"),
+    ("nodejs",   f"{testdata}/nodejs/node-v20.18.3.exe", f"{testdata}/nodejs/node-v20.19.0.exe"),
 ]
 
 print(f"  {'Dataset':<12} {'bsdiff_orig':>14}   {'bspatch_orig':>14}")
