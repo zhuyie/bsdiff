@@ -229,4 +229,32 @@ static void BM_Bspatch_WinMerge_ZSTD(benchmark::State &state) {
 }
 BENCHMARK(BM_Bspatch_WinMerge_ZSTD);
 
+// Bsdiff benchmarks (BZ2) — nodejs
+static void BM_Bsdiff_Nodejs_BZ2(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/nodejs/node-v20.18.3.exe",
+            "testdata/nodejs/node-v20.19.0.exe", Compression::BZ2);
+}
+BENCHMARK(BM_Bsdiff_Nodejs_BZ2);
+
+// Bsdiff benchmarks (ZSTD) — nodejs
+static void BM_Bsdiff_Nodejs_ZSTD(benchmark::State &state) {
+  BM_Bsdiff(state, "testdata/nodejs/node-v20.18.3.exe",
+            "testdata/nodejs/node-v20.19.0.exe", Compression::ZSTD);
+}
+BENCHMARK(BM_Bsdiff_Nodejs_ZSTD);
+
+// Bspatch benchmarks (BZ2) — nodejs
+static void BM_Bspatch_Nodejs_BZ2(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/nodejs/node-v20.18.3.exe",
+             "testdata/nodejs/node-v20.19.0.exe", Compression::BZ2);
+}
+BENCHMARK(BM_Bspatch_Nodejs_BZ2);
+
+// Bspatch benchmarks (ZSTD) — nodejs
+static void BM_Bspatch_Nodejs_ZSTD(benchmark::State &state) {
+  BM_Bspatch(state, "testdata/nodejs/node-v20.18.3.exe",
+             "testdata/nodejs/node-v20.19.0.exe", Compression::ZSTD);
+}
+BENCHMARK(BM_Bspatch_Nodejs_ZSTD);
+
 BENCHMARK_MAIN();

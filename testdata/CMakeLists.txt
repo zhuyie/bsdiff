@@ -59,3 +59,10 @@ test_diff_patch(WinMerge3
     "WinMerge/2.16.14_2.16.22.patch"
     "2.16.22.exe.test"
     "2.16.14_2.16.22.patch.test")
+
+test_diff_patch(nodejs
+    "nodejs/node-v20.18.3.exe"
+    "nodejs/node-v20.19.0.exe"
+    "nodejs/node-v20.18.3_v20.19.0.patch"
+    "node-v20.19.0.exe.test"
+    "node-v20.18.3_v20.19.0.patch.test")

@@ -242,7 +242,10 @@ INSTANTIATE_TEST_SUITE_P(
                 "testdata/putty/0.76.exe"},
         Dataset{"winmerge",
                 "testdata/WinMerge/2.16.14.exe",
-                "testdata/WinMerge/2.16.16.exe"}
+                "testdata/WinMerge/2.16.16.exe"},
+        Dataset{"nodejs",
+                "testdata/nodejs/node-v20.18.3.exe",
+                "testdata/nodejs/node-v20.19.0.exe"}
     ),
     [](const ::testing::TestParamInfo<Dataset> &info) {
       return info.param.name;
