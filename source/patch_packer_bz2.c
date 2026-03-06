@@ -1,4 +1,5 @@
 #include "bsdiff.h"
+#include "bsdiff_mem.h"
 #include "bsdiff_private.h"
 #include <stdlib.h>
 #include <string.h>
@@ -257,8 +258,8 @@ static int bz2_patch_packer_write_new_size(
 	/* Allocate memory for db && eb */
 	assert(packer->db == NULL && packer->dblen == 0);
 	assert(packer->eb == NULL && packer->eblen == 0);
-	packer->db = malloc((size_t)(size + 1));
-	packer->eb = malloc((size_t)(size + 1));
+	packer->db = bsdiff_malloc((size_t)(size + 1));
+	packer->eb = bsdiff_malloc((size_t)(size + 1));
 	if (!packer->db || !packer->eb)
 		return BSDIFF_OUT_OF_MEMORY;
 	packer->dblen = 0;
@@ -406,11 +407,11 @@ static void bz2_patch_packer_close(void *state)
 		bsdiff_close_stream(&(packer->epf));
 	} else {
 		bsdiff_close_compressor(&(packer->enc));
-		free(packer->db);
-		free(packer->eb);
+		bsdiff_free(packer->db);
+		bsdiff_free(packer->eb);
 	}
 
-	free(packer);
+	bsdiff_free(packer);
 }
 
 static int bz2_patch_packer_getmode(void *state)
@@ -429,7 +430,7 @@ int bsdiff_open_bz2_patch_packer(
 	assert(stream);
 	assert(packer);
 
-	state = malloc(sizeof(struct bz2_patch_packer));
+	state = bsdiff_malloc(sizeof(struct bz2_patch_packer));
 	if (!state)
 		return BSDIFF_OUT_OF_MEMORY;
 	memset(state, 0, sizeof(*state));

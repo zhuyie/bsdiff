@@ -1,4 +1,5 @@
 #include "bsdiff.h"
+#include "bsdiff_mem.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -100,7 +101,7 @@ static int memstream_write(void *state, const void *buffer, size_t size)
 	if (s->pos + size > s->capacity) {
 		newcap = calc_new_capacity(s->capacity, s->pos + size);
 
-		newbuf = realloc(s->buffer, newcap);
+		newbuf = bsdiff_realloc(s->buffer, newcap);
 		if (!newbuf)
 			return BSDIFF_OUT_OF_MEMORY;
 
@@ -146,10 +147,10 @@ static void memstream_close(void *state)
 	struct memstream_state *s = (struct memstream_state*)state;
 
 	if (s->mode == BSDIFF_MODE_WRITE) {
-		free(s->buffer);
+		bsdiff_free(s->buffer);
 	}
 
-	free(s);
+	bsdiff_free(s);
 }
 
 static int memstream_getmode(void *state)
@@ -168,14 +169,14 @@ int bsdiff_open_memory_stream(
 	assert(mode >= BSDIFF_MODE_READ && mode <= BSDIFF_MODE_WRITE);
 	assert(stream);
 
-	state = malloc(sizeof(struct memstream_state));
+	state = bsdiff_malloc(sizeof(struct memstream_state));
 	if (state == NULL)
 		return BSDIFF_OUT_OF_MEMORY;
 
 	if (mode == BSDIFF_MODE_READ) {
 		/* read mode */
 		if (buffer == NULL) {
-			free(state);
+			bsdiff_free(state);
 			return BSDIFF_INVALID_ARG;
 		}
 		state->mode = BSDIFF_MODE_READ;
@@ -185,16 +186,16 @@ int bsdiff_open_memory_stream(
 	} else {
 		/* write mode */
 		if (buffer != NULL) {
-			free(state);
+			bsdiff_free(state);
 			return BSDIFF_INVALID_ARG;
 		}
 		state->mode = BSDIFF_MODE_WRITE;
 		state->size = 0;
 		if (size > 0) {
 			/* initial reservation */
-			state->buffer = malloc(size);
+			state->buffer = bsdiff_malloc(size);
 			if (state->buffer == NULL) {
-				free(state);
+				bsdiff_free(state);
 				return BSDIFF_OUT_OF_MEMORY;
 			}
 			state->capacity = size;

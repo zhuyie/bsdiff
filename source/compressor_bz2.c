@@ -1,4 +1,5 @@
 #include "bsdiff.h"
+#include "bsdiff_mem.h"
 #include "bsdiff_private.h"
 #include <stdlib.h>
 #include <string.h>
@@ -128,7 +129,7 @@ static void bz2_compressor_close(void *state)
 	}
 
 	/* free the state */
-	free(enc);
+	bsdiff_free(enc);
 }
 
 int bsdiff_create_bz2_compressor(
@@ -136,7 +137,7 @@ int bsdiff_create_bz2_compressor(
 {
 	struct bz2_compressor *state;
 
-	state = malloc(sizeof(struct bz2_compressor));
+	state = bsdiff_malloc(sizeof(struct bz2_compressor));
 	if (!state)
 		return BSDIFF_OUT_OF_MEMORY;
 	state->initialized = 0;

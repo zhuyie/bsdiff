@@ -45,6 +45,8 @@ add_zstd()
 # bsdiff
 add_library(bsdiff
     source/bsdiff_private.h
+    source/bsdiff_mem.h
+    source/bsdiff_mem.c
     source/misc.c
     source/stream_file.c
     source/stream_memory.c

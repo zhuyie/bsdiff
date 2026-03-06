@@ -232,6 +232,35 @@ void bsdiff_close_patch_packer(
 
 
 /**
+ * @brief Memory allocation statistics.
+ */
+struct bsdiff_mem_stats
+{
+	int64_t current_bytes;   /**< currently allocated bytes */
+	int64_t peak_bytes;      /**< peak allocated bytes */
+	int64_t total_allocs;    /**< total number of allocations */
+	int64_t total_frees;     /**< total number of frees */
+};
+
+/**
+ * @brief
+ *    Get memory allocation statistics.
+ * @param stats
+ *    The stats to be filled.
+ */
+BSDIFF_API
+void bsdiff_get_mem_stats(
+	struct bsdiff_mem_stats *stats);
+
+/**
+ * @brief
+ *    Reset memory allocation statistics.
+ */
+BSDIFF_API
+void bsdiff_reset_mem_stats(void);
+
+
+/**
  * @brief Some user-defined callbacks.
  */
 struct bsdiff_ctx

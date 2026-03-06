@@ -1,4 +1,5 @@
 #include "bsdiff.h"
+#include "bsdiff_mem.h"
 #include "bsdiff_private.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -65,7 +66,7 @@ static void substream_close(void *state)
 {
 	struct substream_state *substream = (struct substream_state*)state;
 	/* free the state */
-	free(substream);
+	bsdiff_free(substream);
 }
 
 static int substream_getmode(void *state)
@@ -97,7 +98,7 @@ int bsdiff_open_substream(
 	if (read_start < 0 || read_end <= read_start || read_end > base_size)
 		return BSDIFF_INVALID_ARG;
 
-	state = malloc(sizeof(struct substream_state));
+	state = bsdiff_malloc(sizeof(struct substream_state));
 	if (state == NULL)
 		return BSDIFF_OUT_OF_MEMORY;
 	state->base = base;

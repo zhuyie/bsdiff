@@ -34,6 +34,7 @@
 
 #include "bsdiff.h"
 #include "bsdiff_private.h"
+#include "bsdiff_mem.h"
 
 int bspatch(
 	struct bsdiff_ctx *ctx,
@@ -63,7 +64,7 @@ int bspatch(
 	}
 	if (oldsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
-	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
+	if ((old = bsdiff_malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
 	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
 		(cb != (size_t)oldsize))
@@ -75,7 +76,7 @@ int bspatch(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read new size from patch_packer");
 	if (newsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
-	if ((new = malloc((size_t)(newsize + 1))) == NULL)
+	if ((new = bsdiff_malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
 
 	oldpos = 0; newpos = 0;
@@ -134,8 +135,8 @@ int bspatch(
 	ret = BSDIFF_SUCCESS;
 
 cleanup:
-	if (new != NULL) { free(new); }
-	if (old != NULL) { free(old); }
+	if (new != NULL) { bsdiff_free(new); }
+	if (old != NULL) { bsdiff_free(old); }
 
 	return ret;
 }

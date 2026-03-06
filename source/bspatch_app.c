@@ -41,6 +41,7 @@ int main(int argc, char * argv[])
 	const char *packer_name = "bz2";
 	const char *files[3] = { NULL, NULL, NULL };
 	int nfiles = 0;
+	int print_mem_stats = 0;
 	int i;
 	struct bsdiff_stream oldfile = { 0 }, newfile = { 0 }, patchfile = { 0 };
 	struct bsdiff_ctx ctx = { 0 };
@@ -50,6 +51,8 @@ int main(int argc, char * argv[])
 		if (strncmp(argv[i], "--", 2) == 0) {
 			if (strncmp(argv[i], "--packer=", 9) == 0) {
 				packer_name = argv[i] + 9;
+			} else if (strcmp(argv[i], "--mem-stats") == 0) {
+				print_mem_stats = 1;
 			} else {
 				fprintf(stderr, "unknown option: %s\n", argv[i]);
 				return 1;
@@ -61,7 +64,7 @@ int main(int argc, char * argv[])
 	}
 
 	if (nfiles != 3) {
-		fprintf(stderr, "usage: %s [--packer=bz2|zstd] oldfile newfile patchfile\n", argv[0]);
+		fprintf(stderr, "usage: %s [--packer=bz2|zstd] [--mem-stats] oldfile newfile patchfile\n", argv[0]);
 		return 1;
 	}
 
@@ -100,6 +103,14 @@ cleanup:
 	bsdiff_close_stream(&patchfile);
 	bsdiff_close_stream(&newfile);
 	bsdiff_close_stream(&oldfile);
+
+	if (print_mem_stats) {
+		struct bsdiff_mem_stats stats;
+		bsdiff_get_mem_stats(&stats);
+		fprintf(stderr, "bspatch memory: current=%lld peak=%lld allocs=%lld frees=%lld\n",
+			(long long)stats.current_bytes, (long long)stats.peak_bytes,
+			(long long)stats.total_allocs, (long long)stats.total_frees);
+	}
 
 	return ret;
 }

@@ -38,6 +38,7 @@
 
 #include "bsdiff.h"
 #include "bsdiff_private.h"
+#include "bsdiff_mem.h"
 
 #define DB_BUF_LEN 65536
 #define MIN(x,y) (((x)<(y)) ? (x) : (y))
@@ -155,7 +156,7 @@ int bsdiff(
 	}
 	if (oldsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
-	if ((old = malloc((size_t)(oldsize + 1))) == NULL)
+	if ((old = bsdiff_malloc((size_t)(oldsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
 	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
 		(cb != (size_t)oldsize))
@@ -168,7 +169,7 @@ int bsdiff(
 	if (oldsize < 0x7fffffff)
 		bufsize /= 2;
 	if (bufsize < SIZE_MAX)
-		SA = malloc((size_t)bufsize);
+		SA = bsdiff_malloc((size_t)bufsize);
 	if (SA == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for SA");
 
@@ -197,7 +198,7 @@ int bsdiff(
 	}
 	if (newsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
-	if ((new = malloc((size_t)(newsize + 1))) == NULL)
+	if ((new = bsdiff_malloc((size_t)(newsize + 1))) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
 	if ((newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS) ||
 		(cb != (size_t)newsize))
@@ -205,7 +206,7 @@ int bsdiff(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read newfile");
 	}
 
-	if ((db = malloc(DB_BUF_LEN)) == NULL)
+	if ((db = bsdiff_malloc(DB_BUF_LEN)) == NULL)
 		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for db");
 
 	/* Begin write */
@@ -336,10 +337,10 @@ int bsdiff(
 	ret = BSDIFF_SUCCESS;
 
 cleanup:
-	if (db != NULL) { free(db); }
-	if (SA != NULL) { free(SA); }
-	if (old != NULL) { free(old); }
-	if (new != NULL) { free(new); }
+	if (db != NULL) { bsdiff_free(db); }
+	if (SA != NULL) { bsdiff_free(SA); }
+	if (old != NULL) { bsdiff_free(old); }
+	if (new != NULL) { bsdiff_free(new); }
 
 	return ret;
 }

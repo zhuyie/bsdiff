@@ -1,4 +1,5 @@
 #include "bsdiff.h"
+#include "bsdiff_mem.h"
 #include "bsdiff_private.h"
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +30,7 @@ static int zstd_enc_init(void *state, struct bsdiff_stream *stream)
 		return BSDIFF_ERROR;
 
 	enc->out_capacity = ZSTD_CStreamOutSize();
-	enc->out_buffer = malloc(enc->out_capacity);
+	enc->out_buffer = bsdiff_malloc(enc->out_capacity);
 	if (!enc->out_buffer)
 		return BSDIFF_OUT_OF_MEMORY;
 
@@ -88,15 +89,15 @@ static void zstd_enc_close(void *state)
 	if (enc->cctx)
 		ZSTD_freeCStream(enc->cctx);
 	if (enc->out_buffer)
-		free(enc->out_buffer);
-	free(enc);
+		bsdiff_free(enc->out_buffer);
+	bsdiff_free(enc);
 }
 
 int bsdiff_create_zstd_compressor(struct bsdiff_compressor *enc)
 {
 	struct zstd_enc_state *state;
 
-	state = malloc(sizeof(struct zstd_enc_state));
+	state = bsdiff_malloc(sizeof(struct zstd_enc_state));
 	if (!state)
 		return BSDIFF_OUT_OF_MEMORY;
 	
