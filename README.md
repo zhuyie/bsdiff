@@ -22,6 +22,10 @@ cmake --build .
 ctest
 ```
 
+## Documentation
+
+For more detailed information on implementation details and performance analysis, see the [Documentation](docs/README.md).
+
 ## API
 ```c
 /**
