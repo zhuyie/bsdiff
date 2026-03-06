@@ -54,11 +54,12 @@ struct zstd_patch_packer
 	struct bsdiff_decompressor dpf_dec;
 	struct bsdiff_decompressor epf_dec;
 
-	struct bsdiff_compressor enc;
-	uint8_t *db;
-	uint8_t *eb;
-	int64_t dblen;
-	int64_t eblen;
+	struct bsdiff_compressor cpf_enc;
+	struct bsdiff_compressor dpf_enc;
+	struct bsdiff_compressor epf_enc;
+	struct bsdiff_stream cpf_stream;
+	struct bsdiff_stream dpf_stream;
+	struct bsdiff_stream epf_stream;
 };
 
 static int zstd_patch_packer_read_new_size(void *state, int64_t *size)
@@ -225,21 +226,29 @@ static int zstd_patch_packer_write_new_size(void *state, int64_t size)
 	    BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
 
-	/* Initialize compressor for control block */
-	if ((bsdiff_create_zstd_compressor(&(packer->enc)) != BSDIFF_SUCCESS) ||
-	    (packer->enc.init(packer->enc.state, packer->stream) != BSDIFF_SUCCESS)) {
-		return BSDIFF_ERROR;
+	/* Initialize memory streams for ctrl, diff && extra */
+	if (bsdiff_open_memory_stream(BSDIFF_MODE_WRITE, NULL, 0, &(packer->cpf_stream)) != BSDIFF_SUCCESS)
+		return BSDIFF_OUT_OF_MEMORY;
+	if (bsdiff_open_memory_stream(BSDIFF_MODE_WRITE, NULL, 0, &(packer->dpf_stream)) != BSDIFF_SUCCESS) {
+		bsdiff_close_stream(&(packer->cpf_stream));
+		return BSDIFF_OUT_OF_MEMORY;
+	}
+	if (bsdiff_open_memory_stream(BSDIFF_MODE_WRITE, NULL, 0, &(packer->epf_stream)) != BSDIFF_SUCCESS) {
+		bsdiff_close_stream(&(packer->cpf_stream));
+		bsdiff_close_stream(&(packer->dpf_stream));
+		return BSDIFF_OUT_OF_MEMORY;
 	}
 
-	/* Allocate memory for db && eb */
-	assert(packer->db == NULL && packer->dblen == 0);
-	assert(packer->eb == NULL && packer->eblen == 0);
-	packer->db = bsdiff_malloc((size_t)(size + 1));
-	packer->eb = bsdiff_malloc((size_t)(size + 1));
-	if (!packer->db || !packer->eb)
-		return BSDIFF_OUT_OF_MEMORY;
-	packer->dblen = 0;
-	packer->eblen = 0;
+	/* Initialize compressors */
+	if ((bsdiff_create_zstd_compressor(&(packer->cpf_enc)) != BSDIFF_SUCCESS) ||
+	    (packer->cpf_enc.init(packer->cpf_enc.state, &(packer->cpf_stream)) != BSDIFF_SUCCESS))
+		return BSDIFF_ERROR;
+	if ((bsdiff_create_zstd_compressor(&(packer->dpf_enc)) != BSDIFF_SUCCESS) ||
+	    (packer->dpf_enc.init(packer->dpf_enc.state, &(packer->dpf_stream)) != BSDIFF_SUCCESS))
+		return BSDIFF_ERROR;
+	if ((bsdiff_create_zstd_compressor(&(packer->epf_enc)) != BSDIFF_SUCCESS) ||
+	    (packer->epf_enc.init(packer->epf_enc.state, &(packer->epf_stream)) != BSDIFF_SUCCESS))
+		return BSDIFF_ERROR;
 
 	packer->new_size = size;
 
@@ -267,7 +276,7 @@ static int zstd_patch_packer_write_entry_header(void *state, int64_t diff,
 	zstd_write_int64(packer->header_x, buf);
 	zstd_write_int64(packer->header_y, buf + 8);
 	zstd_write_int64(packer->header_z, buf + 16);
-	ret = packer->enc.write(packer->enc.state, buf, 24);
+	ret = packer->cpf_enc.write(packer->cpf_enc.state, buf, 24);
 	if (ret != BSDIFF_SUCCESS)
 		return ret;
 
@@ -283,10 +292,8 @@ static int zstd_patch_packer_write_entry_diff(void *state, const void *buffer,
 
 	if ((int64_t)size > packer->header_x)
 		return BSDIFF_INVALID_ARG;
-	if (packer->dblen + (int64_t)size > packer->new_size)
-		return BSDIFF_INVALID_ARG;
-	memcpy(packer->db + packer->dblen, buffer, size);
-	packer->dblen += (int64_t)size;
+	if (packer->dpf_enc.write(packer->dpf_enc.state, buffer, size) != BSDIFF_SUCCESS)
+		return BSDIFF_ERROR;
 	packer->header_x -= (int64_t)size;
 
 	return BSDIFF_SUCCESS;
@@ -301,10 +308,8 @@ static int zstd_patch_packer_write_entry_extra(void *state, const void *buffer,
 
 	if ((int64_t)size > packer->header_y)
 		return BSDIFF_INVALID_ARG;
-	if (packer->eblen + (int64_t)size > packer->new_size)
-		return BSDIFF_INVALID_ARG;
-	memcpy(packer->eb + packer->eblen, buffer, size);
-	packer->eblen += (int64_t)size;
+	if (packer->epf_enc.write(packer->epf_enc.state, buffer, size) != BSDIFF_SUCCESS)
+		return BSDIFF_ERROR;
 	packer->header_y -= (int64_t)size;
 
 	return BSDIFF_SUCCESS;
@@ -324,54 +329,38 @@ static int zstd_patch_packer_flush(void *state)
 	memcpy(header, "ZSTDDIFF", 8);
 	zstd_write_int64(packer->new_size, header + 24);
 
-	/* Flush ctrl data */
-	if (packer->enc.flush(packer->enc.state) != BSDIFF_SUCCESS)
+	/* Flush all compressors */
+	if (packer->cpf_enc.flush(packer->cpf_enc.state) != BSDIFF_SUCCESS)
 		return BSDIFF_ERROR;
-	bsdiff_close_compressor(&(packer->enc));
+	if (packer->dpf_enc.flush(packer->dpf_enc.state) != BSDIFF_SUCCESS)
+		return BSDIFF_ERROR;
+	if (packer->epf_enc.flush(packer->epf_enc.state) != BSDIFF_SUCCESS)
+		return BSDIFF_ERROR;
 
-	/* Compute size of compressed ctrl data */
-	if (packer->stream->tell(packer->stream->state, &patchsize) != BSDIFF_SUCCESS)
+	/* Get compressed buffers and sizes */
+	const void *cpf_buf, *dpf_buf, *epf_buf;
+	size_t cpf_size, dpf_size, epf_size;
+	packer->cpf_stream.get_buffer(packer->cpf_stream.state, &cpf_buf, &cpf_size);
+	packer->dpf_stream.get_buffer(packer->dpf_stream.state, &dpf_buf, &dpf_size);
+	packer->epf_stream.get_buffer(packer->epf_stream.state, &epf_buf, &epf_size);
+
+	/* Fill header lengths */
+	zstd_write_int64((int64_t)cpf_size, header + 8);
+	zstd_write_int64((int64_t)dpf_size, header + 16);
+
+	/* Seek to the beginning, write everything sequentially */
+	if (packer->stream->seek(packer->stream->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
-	zstd_write_int64(patchsize - 32, header + 8);
-
-	/* Write compressed diff data */
-	if ((bsdiff_create_zstd_compressor(&(packer->enc)) != BSDIFF_SUCCESS) ||
-	    (packer->enc.init(packer->enc.state, packer->stream) != BSDIFF_SUCCESS)) {
-		return BSDIFF_ERROR;
-	}
-	if (packer->enc.write(packer->enc.state, packer->db, (size_t)packer->dblen) !=
-	    BSDIFF_SUCCESS)
-		return BSDIFF_ERROR;
-	if (packer->enc.flush(packer->enc.state) != BSDIFF_SUCCESS)
-		return BSDIFF_ERROR;
-	bsdiff_close_compressor(&(packer->enc));
-
-	/* Compute size of compressed diff data */
-	if (packer->stream->tell(packer->stream->state, &patchsize2) !=
-	    BSDIFF_SUCCESS)
+	if (packer->stream->write(packer->stream->state, header, 32) != BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
-	zstd_write_int64(patchsize2 - patchsize, header + 16);
-
-	/* Write compressed extra data */
-	if ((bsdiff_create_zstd_compressor(&(packer->enc)) != BSDIFF_SUCCESS) ||
-	    (packer->enc.init(packer->enc.state, packer->stream) != BSDIFF_SUCCESS)) {
-		return BSDIFF_ERROR;
-	}
-	if (packer->enc.write(packer->enc.state, packer->eb, (size_t)packer->eblen) !=
-	    BSDIFF_SUCCESS)
-		return BSDIFF_ERROR;
-	if (packer->enc.flush(packer->enc.state) != BSDIFF_SUCCESS)
-		return BSDIFF_ERROR;
-	bsdiff_close_compressor(&(packer->enc));
-
-	/* Seek to the beginning, (re)write the header */
-	if ((packer->stream->seek(packer->stream->state, 0, BSDIFF_SEEK_SET) !=
-	     BSDIFF_SUCCESS) ||
-	    (packer->stream->write(packer->stream->state, header, 32) !=
-	     BSDIFF_SUCCESS) ||
-	    (packer->stream->flush(packer->stream->state) != BSDIFF_SUCCESS)) {
+	if (packer->stream->write(packer->stream->state, cpf_buf, cpf_size) != BSDIFF_SUCCESS)
 		return BSDIFF_FILE_ERROR;
-	}
+	if (packer->stream->write(packer->stream->state, dpf_buf, dpf_size) != BSDIFF_SUCCESS)
+		return BSDIFF_FILE_ERROR;
+	if (packer->stream->write(packer->stream->state, epf_buf, epf_size) != BSDIFF_SUCCESS)
+		return BSDIFF_FILE_ERROR;
+	if (packer->stream->flush(packer->stream->state) != BSDIFF_SUCCESS)
+		return BSDIFF_FILE_ERROR;
 
 	return BSDIFF_SUCCESS;
 }
@@ -388,9 +377,12 @@ static void zstd_patch_packer_close(void *state)
 		bsdiff_close_stream(&(packer->dpf));
 		bsdiff_close_stream(&(packer->epf));
 	} else {
-		bsdiff_close_compressor(&(packer->enc));
-		bsdiff_free(packer->db);
-		bsdiff_free(packer->eb);
+		bsdiff_close_compressor(&(packer->cpf_enc));
+		bsdiff_close_compressor(&(packer->dpf_enc));
+		bsdiff_close_compressor(&(packer->epf_enc));
+		bsdiff_close_stream(&(packer->cpf_stream));
+		bsdiff_close_stream(&(packer->dpf_stream));
+		bsdiff_close_stream(&(packer->epf_stream));
 	}
 
 	bsdiff_free(packer);
