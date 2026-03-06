@@ -45,17 +45,34 @@ Measurements taken using the `zstd` packer on various datasets.
 
 ### bsdiff (Diff Generation)
 
-| Dataset | Size (Old/New) | Peak Memory | Allocs | Total Bytes / OldSize |
-| :--- | :--- | :--- | :--- | :--- |
-| **simple** | 24 KB / 24 KB | **456.1 KB** | 10 | ~18.5x |
-| **putty** (0.75→0.76) | 1.4 MB / 1.4 MB | **9.2 MB** | 13 | ~6.4x |
-| **nodejs** (20.18→20.19) | 67.9 MB / 68.1 MB | **536.4 MB** | 13 | **~7.9x** |
+| Dataset | Size (Old/New) | Packer | Peak Memory | Allocs | Total Bytes / OldSize |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **simple** | 24 KB / 24 KB | bz2 | **456.1 KB** | 10 | ~18.5x |
+| **putty** | 1.4 MB / 1.4 MB | zstd | **9.2 MB** | 13 | ~6.4x |
+| **nodejs** | 67.9 MB / 68.1 MB | **bz2** | **536.3 MB** | 10 | **~7.9x** |
+| **nodejs** | 67.9 MB / 68.1 MB | **zstd** | **536.4 MB** | 13 | **~7.9x** |
 
 ### bspatch (Patch Application)
 
-| Dataset | Size (Old/New) | Peak Memory | Allocs | Total Bytes / OldSize |
-| :--- | :--- | :--- | :--- | :--- |
-| **nodejs** | 67.9 MB / 68.1 MB | **134.7 MB** | 12 | **~1.98x** |
+| Dataset | Size (Old/New) | Packer | Peak Memory | Allocs | Total Bytes / OldSize |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **nodejs** | 67.9 MB / 68.1 MB | **bz2** | **134.4 MB** | 9 | **~1.98x** |
+| **nodejs** | 67.9 MB / 68.1 MB | **zstd** | **134.7 MB** | 12 | **~1.98x** |
+
+---
+
+## Comparison: bz2 vs zstd
+
+### 1. Peak Memory Profile
+The peak memory is almost identical between bz2 and zstd. This confirms that the memory consumption is dominated by the **core bsdiff algorithm** (Old/New buffers and Suffix Array) rather than the compressor's internal state.
+
+### 2. Overhead Breakdown
+- **zstd** has a slightly higher peak (~120-300 KB) than bz2.
+- **zstd** makes more allocations (3 more in bsdiff, 3 more in bspatch) due to its internal buffer management (e.g., `out_buffer` context).
+
+### 3. Allocation Patterns
+- **bz2**: Stable and minimal helper allocations.
+- **zstd**: Efficient block processing but requires larger temporary work buffers for its dictionary/sliding window.
 
 ---
 
