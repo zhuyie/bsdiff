@@ -146,22 +146,28 @@ int bsdiff(
 	assert(newfile->get_mode(newfile->state) == BSDIFF_MODE_READ);
 	assert(packer->get_mode(packer->state) == BSDIFF_MODE_WRITE);
 
-	/* Allocate oldsize+1 bytes instead of oldsize bytes to ensure
-		that we never try to malloc(0) and get a NULL pointer */
-	if ((oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
-		(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
-		(oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
+	/* Check if oldfile provides a direct buffer (e.g., mmap) */
+	if (oldfile->get_buffer && oldfile->get_buffer(oldfile->state, (const void **)&old, &cb) == BSDIFF_SUCCESS)
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of oldfile");
+		oldsize = (int64_t)cb;
 	}
-	if (oldsize >= SIZE_MAX)
-		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
-	if ((old = bsdiff_malloc((size_t)(oldsize + 1))) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
-	if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
-		(cb != (size_t)oldsize))
+	else
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
+		if ((oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
+			(oldfile->tell(oldfile->state, &oldsize) != BSDIFF_SUCCESS) ||
+			(oldfile->seek(oldfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
+		{
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of oldfile");
+		}
+		if (oldsize >= SIZE_MAX)
+			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "oldfile is too large");
+		if ((old = bsdiff_malloc((size_t)(oldsize + 1))) == NULL)
+			HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for old");
+		if ((oldfile->read(oldfile->state, old, (size_t)oldsize, &cb) != BSDIFF_SUCCESS) ||
+			(cb != (size_t)oldsize))
+		{
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read oldfile");
+		}
 	}
 
 	/* Construct the suffix array */
@@ -188,22 +194,28 @@ int bsdiff(
 		psearch = search64;
 	}
 
-	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
-		that we never try to malloc(0) and get a NULL pointer */
-	if ((newfile->seek(newfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
-		(newfile->tell(newfile->state, &newsize) != BSDIFF_SUCCESS) ||
-		(newfile->seek(newfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
+	/* Check if newfile provides a direct buffer (e.g., mmap) */
+	if (newfile->get_buffer && newfile->get_buffer(newfile->state, (const void **)&new, &cb) == BSDIFF_SUCCESS)
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of newfile");
+		newsize = (int64_t)cb;
 	}
-	if (newsize >= SIZE_MAX)
-		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
-	if ((new = bsdiff_malloc((size_t)(newsize + 1))) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
-	if ((newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS) ||
-		(cb != (size_t)newsize))
+	else
 	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read newfile");
+		if ((newfile->seek(newfile->state, 0, BSDIFF_SEEK_END) != BSDIFF_SUCCESS) ||
+			(newfile->tell(newfile->state, &newsize) != BSDIFF_SUCCESS) ||
+			(newfile->seek(newfile->state, 0, BSDIFF_SEEK_SET) != BSDIFF_SUCCESS))
+		{
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "retrieve size of newfile");
+		}
+		if (newsize >= SIZE_MAX)
+			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
+		if ((new = bsdiff_malloc((size_t)(newsize + 1))) == NULL)
+			HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
+		if ((newfile->read(newfile->state, new, (size_t)newsize, &cb) != BSDIFF_SUCCESS) ||
+			(cb != (size_t)newsize))
+		{
+			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read newfile");
+		}
 	}
 
 	if ((db = bsdiff_malloc(DB_BUF_LEN)) == NULL)
@@ -339,8 +351,8 @@ int bsdiff(
 cleanup:
 	if (db != NULL) { bsdiff_free(db); }
 	if (SA != NULL) { bsdiff_free(SA); }
-	if (old != NULL) { bsdiff_free(old); }
-	if (new != NULL) { bsdiff_free(new); }
+	if (old != NULL && (oldfile->get_buffer == NULL)) { bsdiff_free(old); }
+	if (new != NULL && (newfile->get_buffer == NULL)) { bsdiff_free(new); }
 
 	return ret;
 }

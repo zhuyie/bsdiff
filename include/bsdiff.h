@@ -135,6 +135,24 @@ int bsdiff_open_memory_stream(
 
 /**
  * @brief
+ *    Open a file based mmap bsdiff_stream.
+ * @param mode
+ *    The working mode of the stream (must be BSDIFF_MODE_READ).
+ * @param filename
+ *    The name of the file to be mapped.
+ * @param stream
+ *    The stream to be opened.
+ * @return
+ *    BSDIFF_SUCCESS if no error.
+ */
+BSDIFF_API
+int bsdiff_open_mmap_stream(
+	int mode,
+	const char *filename,
+	struct bsdiff_stream *stream);
+
+/**
+ * @brief
  *    Close a bsdiff_stream.
  * @param stream
  *    The stream to be closed.

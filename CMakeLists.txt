@@ -49,6 +49,7 @@ add_library(bsdiff
     source/bsdiff_mem.c
     source/misc.c
     source/stream_file.c
+    source/stream_mmap.c
     source/stream_memory.c
     source/stream_sub.c
     source/compressor_bz2.c

@@ -68,8 +68,8 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_READ, files[0], &oldfile)) != BSDIFF_SUCCESS) {
-		fprintf(stderr, "can't open oldfile: %s\n", files[0]);
+	if ((ret = bsdiff_open_mmap_stream(BSDIFF_MODE_READ, files[0], &oldfile)) != BSDIFF_SUCCESS) {
+		fprintf(stderr, "can't open oldfile with mmap: %s\n", files[0]);
 		goto cleanup;
 	}
 	if ((ret = bsdiff_open_file_stream(BSDIFF_MODE_WRITE, files[1], &newfile)) != BSDIFF_SUCCESS) {
