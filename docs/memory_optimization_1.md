@@ -57,4 +57,27 @@ graph LR
 ```
 
 ### Compatibility
-These optimizations are 100% compatible with the standard `BSDIFF40` and `ZSTDDIFF` formats. Only the internal generation process was changed; the resulting patch files are bit-for-bit identical or functionally equivalent to those produced by the original implementation.
+These optimizations are 100% compatible with the standard `BSDIFF40` and `ZSTD_DIFF` formats. Only the internal generation process was changed; the resulting patch files are bit-for-bit identical or functionally equivalent to those produced by the original implementation.
+
+## 6. Execution Performance Impact
+
+Benchmarks were performed on the Node.js 68MB dataset to evaluate the impact of streaming compression on execution speed.
+
+### Benchmark Results (Node.js 68MB)
+
+| Stage | bz2 Time (ms) | zstd Time (ms) | Speed Impact |
+| :--- | :--- | :--- | :--- |
+| **Baseline** | 7724 | 6010 | - |
+| **Streaming** | 7717 | 6149 | **~2.3% (zstd)** |
+
+### Analysis
+
+- **bzip2**: The performance impact is zero or negligible. Since bzip2 itself is computationally expensive, the overhead of managing three parallel streams is completely overshadowed by the compression algorithm's workload.
+- **zstd**: There is a small overhead of approximately **2.3%**. This is due to the increased frequency of calling `ZSTD_compressStream` (three times per entry instead of once) and managing three separate compression contexts.
+- **Real-world benefit**: In memory-constrained environments, the reduction of 110MB (20.5% of peak memory) is far more valuable than the slight increase in CPU time. It also reduces the likelihood of system page swapping, which could significantly degrade performance in practice.
+
+---
+
+## Conclusion
+
+The lightweight memory tracking mechanism allowed us to precisely identify and eliminate redundant buffer allocations. By transitioning from a 8N to a 6N memory model through **Streaming Compression**, we achieved a major reduction in memory footprint with minimal impact on execution speed.
