@@ -45,7 +45,7 @@ int bspatch(
 	int ret;
 	size_t cb;
 	int64_t oldsize, newsize;
-	uint8_t *old = NULL, *new = NULL;
+	uint8_t *old = NULL;
 	int64_t oldpos, newpos;
 	int64_t ctrl[3];
 	int64_t i;
@@ -84,8 +84,12 @@ int bspatch(
 		HANDLE_ERROR(BSDIFF_FILE_ERROR, "read new size from patch_packer");
 	if (newsize >= SIZE_MAX)
 		HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "newfile is too large");
-	if ((new = bsdiff_malloc((size_t)(newsize + 1))) == NULL)
-		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for new");
+
+	/* Allocate a scratch buffer for processing */
+	size_t buffer_size = 128 * 1024;
+	uint8_t *buffer = bsdiff_malloc(buffer_size);
+	if (buffer == NULL)
+		HANDLE_ERROR(BSDIFF_OUT_OF_MEMORY, "malloc for scratch buffer");
 
 	oldpos = 0; newpos = 0;
 	while (newpos < newsize) {
@@ -100,17 +104,26 @@ int bspatch(
 		if (ctrl[0] > newsize - newpos)
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
-		/* Read diff string */
-		if (ctrl[0] >= SIZE_MAX)
-			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read diff string");
-		ret = packer->read_entry_diff(packer->state, new + newpos, (size_t)ctrl[0], &cb);
-		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != (size_t)ctrl[0]))
-			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read diff string");
+		/* Process diff string in chunks */
+		for (i = 0; i < ctrl[0]; ) {
+			size_t len = (size_t)(ctrl[0] - i);
+			if (len > buffer_size)
+				len = buffer_size;
 
-		/* Add old data to diff string */
-		for (i = 0; i < ctrl[0]; i++) {
-			if ((oldpos + i >= 0) && (oldpos + i < oldsize))
-				new[newpos + i] += old[oldpos + i];
+			ret = packer->read_entry_diff(packer->state, buffer, len, &cb);
+			if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != len))
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "read diff string");
+
+			/* Add old data to diff string */
+			for (size_t j = 0; j < len; j++) {
+				if ((oldpos + i + (int64_t)j >= 0) && (oldpos + i + (int64_t)j < oldsize))
+					buffer[j] += old[oldpos + i + (int64_t)j];
+			}
+
+			if (newfile->write(newfile->state, buffer, len) != BSDIFF_SUCCESS)
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "write newfile");
+
+			i += (int64_t)len;
 		}
 
 		/* Adjust pointers */
@@ -121,29 +134,35 @@ int bspatch(
 		if (ctrl[1] > newsize - newpos)
 			HANDLE_ERROR(BSDIFF_CORRUPT_PATCH, "invalid control data");
 
-		/* Read extra string */
-		if (ctrl[1] >= SIZE_MAX)
-			HANDLE_ERROR(BSDIFF_SIZE_TOO_LARGE, "read extra string");
-		ret = packer->read_entry_extra(packer->state, new + newpos, (size_t)ctrl[1], &cb);
-		if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != (size_t)ctrl[1]))
-			HANDLE_ERROR(BSDIFF_FILE_ERROR, "read extra string");
+		/* Process extra string in chunks */
+		for (i = 0; i < ctrl[1]; ) {
+			size_t len = (size_t)(ctrl[1] - i);
+			if (len > buffer_size)
+				len = buffer_size;
+
+			ret = packer->read_entry_extra(packer->state, buffer, len, &cb);
+			if ((ret != BSDIFF_SUCCESS && ret != BSDIFF_END_OF_FILE) || (cb != len))
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "read extra string");
+
+			if (newfile->write(newfile->state, buffer, len) != BSDIFF_SUCCESS)
+				HANDLE_ERROR(BSDIFF_FILE_ERROR, "write newfile");
+
+			i += (int64_t)len;
+		}
 
 		/* Adjust pointers */
 		newpos += ctrl[1];
 		oldpos += ctrl[2];
-	};
-
-	/* Write the new file */
-	if ((newfile->write(newfile->state, new, (size_t)newsize) != BSDIFF_SUCCESS) ||
-		(newfile->flush(newfile->state) != BSDIFF_SUCCESS))
-	{
-		HANDLE_ERROR(BSDIFF_FILE_ERROR, "write newfile");
 	}
+
+	/* Flush the new file */
+	if (newfile->flush(newfile->state) != BSDIFF_SUCCESS)
+		HANDLE_ERROR(BSDIFF_FILE_ERROR, "flush newfile");
 
 	ret = BSDIFF_SUCCESS;
 
 cleanup:
-	if (new != NULL) { bsdiff_free(new); }
+	if (buffer != NULL) { bsdiff_free(buffer); }
 	if (old != NULL && (oldfile->get_buffer == NULL)) { bsdiff_free(old); }
 
 	return ret;

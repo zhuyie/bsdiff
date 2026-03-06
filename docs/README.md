@@ -9,3 +9,4 @@ Technical documentation and reports for the bsdiff project.
 | [memory_tracking.md](memory_tracking.md) | Memory Tracking Mechanism and Initial Usage Analysis | 2026-03-06 |
 | [memory_optimization_1.md](memory_optimization_1.md) | Memory Optimization: Phase 1 - Streaming Compression | 2026-03-06 |
 | [memory_optimization_2.md](memory_optimization_2.md) | Memory Optimization: Phase 2 - Memory-Mapped IO (mmap) | 2026-03-06 |
+| [memory_optimization_3.md](memory_optimization_3.md) | Memory Optimization: Phase 3 - Streaming Patch Application | 2026-03-06 |
